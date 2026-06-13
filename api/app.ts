@@ -9,7 +9,7 @@ import {
   CoinIntelligenceReport, 
   MarketGlobalStats,
   ChatMessage 
-} from "./src/types";
+} from "../src/types";
 
 dotenv.config();
 
