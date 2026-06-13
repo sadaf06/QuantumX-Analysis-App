@@ -895,6 +895,8 @@ async function fetchFearAndGreed(): Promise<{ index: number; label: string }> {
   return cachedFnG;
 }
 
+export default app;
+
 // ------------------- VITE SERVER INTEGRATION -------------------
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
@@ -918,4 +920,6 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
