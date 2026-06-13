@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { 
   ChevronRight, 
   RefreshCw, 
@@ -8,8 +8,26 @@ import {
   Radio,
   Sliders,
   Briefcase,
-  X
+  X,
+  MessageSquare,
+  Search,
+  Terminal,
+  Cpu,
+  Sparkles,
+  Lock,
+  Compass,
+  BookOpen,
+  ArrowRight,
+  ChevronLeft,
+  Activity,
+  Layers,
+  Keyboard,
+  ArrowUpRight,
+  User,
+  ArrowDownRight,
+  Menu
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   CryptoAsset, 
   CoinIntelligenceReport, 
@@ -23,7 +41,6 @@ import { CoinDetail } from "./components/CoinDetail";
 import { PortfolioCenter } from "./components/PortfolioCenter";
 import { AnalysisTabCenter, AnalyzedCoinTab } from "./components/AnalysisTabCenter";
 import { AiAssistantTab } from "./components/AiAssistantTab";
-import { MessageSquare } from "lucide-react";
 
 const INITIAL_PROFILE: UserProfile = {
   balance: 100000, // Starts with $100k
@@ -54,7 +71,7 @@ export default function App() {
     localStorage.setItem("quantum_theme", theme);
   }, [theme]);
 
-  // Top-Level Tab States
+  // Top-Level Tab States (Remapped for Left Sidebar directories)
   const [activeTopTab, setActiveTopTab] = useState<"TRADE" | "ANALYSIS" | "PORTFOLIO" | "CHAT">(() => {
     return (localStorage.getItem("quantum_active_top_tab") as any) || "TRADE";
   });
@@ -81,22 +98,36 @@ export default function App() {
     localStorage.setItem("quantum_active_analysis_index", JSON.stringify(activeAnalysisIndex));
   }, [activeAnalysisIndex]);
 
-  // Quick Action / Language Prompt States
+  // Command Bar & Custom Navigation parameters
+  const [showCommandBar, setShowCommandBar] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+
+  // Quick Action / Language Selection Modal States
   const [showSelectionModal, setShowSelectionModal] = useState(false);
   const [selectedModalAsset, setSelectedModalAsset] = useState<CryptoAsset | null>(null);
   const [showLangSelectionStep, setShowLangSelectionStep] = useState(false);
   const [selectedModalLang, setSelectedModalLang] = useState<"english" | "hinglish">("english");
 
   // Core App States (for Direct Trade view)
-  const [currentView, setCurrentView] = useState<"DASHBOARD" | "DETAIL">("DASHBOARD");
-  const [selectedCoinId, setSelectedCoinId] = useState<string>("bitcoin");
+  const [currentView, setCurrentView] = useState<"DASHBOARD" | "DETAIL">(() => {
+    return (localStorage.getItem("quantum_current_view") as any) || "DASHBOARD";
+  });
+  const [selectedCoinId, setSelectedCoinId] = useState<string>(() => {
+    return localStorage.getItem("quantum_selected_coin_id") || "bitcoin";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<CryptoAsset[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   // Data States
   const [marketStats, setMarketStats] = useState<MarketGlobalStats | null>(null);
-  const [activeAsset, setActiveAsset] = useState<CryptoAsset | null>(null);
+  const [activeAsset, setActiveAsset] = useState<CryptoAsset | null>(() => {
+    const saved = localStorage.getItem("quantum_active_asset");
+    return saved ? JSON.parse(saved) : null;
+  });
   const [activeCoinReport, setActiveCoinReport] = useState<CoinIntelligenceReport | null>(null);
   
   // User Profile / Paper Trading
@@ -104,6 +135,22 @@ export default function App() {
     const saved = localStorage.getItem("quantum_profile");
     return saved ? JSON.parse(saved) : INITIAL_PROFILE;
   });
+
+  useEffect(() => {
+    localStorage.setItem("quantum_current_view", currentView);
+  }, [currentView]);
+
+  useEffect(() => {
+    localStorage.setItem("quantum_selected_coin_id", selectedCoinId);
+  }, [selectedCoinId]);
+
+  useEffect(() => {
+    if (activeAsset) {
+      localStorage.setItem("quantum_active_asset", JSON.stringify(activeAsset));
+    } else {
+      localStorage.removeItem("quantum_active_asset");
+    }
+  }, [activeAsset]);
 
   useEffect(() => {
     localStorage.setItem("quantum_profile", JSON.stringify(userProfile));
@@ -158,7 +205,6 @@ export default function App() {
         next.balance += cost;
         const currentHolding = next.holdings[trade.symbol] || { amount: 0, averagePrice: 0 };
         const newAmount = Math.max(0, currentHolding.amount - trade.amount);
-        // Average price remains the same for sells in this simple FIFO/Avg model
         if (newAmount === 0) {
           delete next.holdings[trade.symbol];
         } else {
@@ -183,17 +229,17 @@ export default function App() {
   const [latency, setLatency] = useState(11);
   const [timeSinceUpdate, setTimeSinceUpdate] = useState(0);
 
-  // Chat States (for legacy Direct Trade Detail view chat if report active)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+  // Copilot State-specific messages
+  const [copilotGlobalMessages, setCopilotGlobalMessages] = useState<ChatMessage[]>([
     {
-      id: "welcome_init",
+      id: "copilot_init",
       role: "assistant",
-      content: "Welcome to **Quantum Intelligence X Specialist Core**. This desk compiles elite technical target pricing, market structure trends, Quantum cyclic anniversary grids, and smart money behaviors.\n\nInput a specific inquiry regarding the selected asset or query general macro trends below.",
+      content: "I am your persistent **Aegis AI Copilot**. I analyze risk vectors, beta exposures, and cyclical squared resistance milestones.\n\nUse quick prompts below or ask anything about our portfolio.",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
-  const [chatInput, setChatInput] = useState("");
-  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [copilotInput, setCopilotInput] = useState("");
+  const [isCopilotLoading, setIsCopilotLoading] = useState(false);
 
   // Periodic Refresh Logic
   useEffect(() => {
@@ -208,7 +254,7 @@ export default function App() {
 
     const dataInterval = setInterval(() => {
       fetchGlobalMarketStats();
-    }, 12000); // refresh raw stats every 12s to keep prices accurate
+    }, 12000);
 
     const latencyInterval = setInterval(() => {
       setLatency(prev => Math.max(7, Math.min(18, prev + (Math.random() > 0.5 ? 1 : -1))));
@@ -228,7 +274,51 @@ export default function App() {
     };
   }, []);
 
-  // Search logic
+  // Keyboard shortcut listener for Universal Command Bar ("/")
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+        e.preventDefault();
+        setShowCommandBar(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Universal command bar queried results autocompletes
+  const commandResults = useMemo(() => {
+    if (!commandQuery.trim()) return [];
+    if (!marketStats) return [];
+    const query = commandQuery.toLowerCase();
+    return marketStats.trending.filter(c => 
+      c.symbol.toLowerCase().includes(query) || 
+      c.name.toLowerCase().includes(query)
+    ).slice(0, 5);
+  }, [commandQuery, marketStats]);
+
+  // Dynamic calculations for Profile Net Asset Value (NAV)
+  const livePrices = useMemo(() => {
+    const map: { [symbol: string]: number } = {};
+    if (marketStats) {
+      marketStats.trending.forEach(a => {
+        map[a.symbol.toUpperCase()] = a.priceUsd;
+      });
+    }
+    return map;
+  }, [marketStats]);
+
+  const profileNav = useMemo(() => {
+    let cryptoValueSum = 0;
+    Object.entries(userProfile.holdings).forEach(([symbol, rawHolding]) => {
+      const holding = rawHolding as { amount: number; averagePrice: number };
+      const livePrice = livePrices[symbol.toUpperCase()] || holding.averagePrice;
+      cryptoValueSum += holding.amount * livePrice;
+    });
+    return userProfile.balance + cryptoValueSum;
+  }, [userProfile.holdings, userProfile.balance, livePrices]);
+
+  // Search logic for standard search fields
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -268,7 +358,6 @@ export default function App() {
     }
   };
 
-  // Intercept the click on a coin to ask for options (Direct trading view vs Deep analysis)
   const handleSelectAsset = (asset: CryptoAsset) => {
     setSelectedModalAsset(asset);
     setShowLangSelectionStep(false);
@@ -286,29 +375,27 @@ export default function App() {
     pushNotification(`Established Direct Trade line for ${asset.symbol}.`);
   };
 
-  // Launch analysis sub-tab under the Analysis Tab
-  const handleLaunchAnalysis = async (asset: CryptoAsset, lang: "english" | "hinglish") => {
+  const handleLaunchAnalysis = async (asset: CryptoAsset, lang: "english" | "binglish" | "hinglish") => {
     setShowSelectionModal(false);
     setActiveTopTab("ANALYSIS");
 
-    // Check if subtab for this coin and language already exists
-    const existingIndex = analysisTabs.findIndex(t => t.coin.id === asset.id && t.lang === lang);
+    const l = lang === "hinglish" ? "hinglish" : "english";
+    const existingIndex = analysisTabs.findIndex(t => t.coin.id === asset.id && t.lang === l);
     if (existingIndex >= 0) {
       setActiveAnalysisIndex(existingIndex);
       return;
     }
 
-    // Prepare new tab template
     const newTab: AnalyzedCoinTab = {
       coin: asset,
-      lang,
+      lang: l,
       report: null,
       isAnalyzing: true,
       chatMessages: [
         {
           id: `welcome_${asset.id}_${Date.now()}`,
           role: "assistant",
-          content: lang === "hinglish"
+          content: l === "hinglish"
             ? `Namaste! **${asset.name} (${asset.symbol})** ka advanced quantitative scanning processing me hai... hum cyclical vectors detect kar rahe hain. Live chart price: **$${asset.priceUsd.toLocaleString()}**. Koi specific queries hon toh directly yaha pucho.`
             : `Welcome to the core specialist quantitative desk for **${asset.name} (${asset.symbol})** trading live at **$${asset.priceUsd.toLocaleString()}**. System diagnostics are active. Ask me about support barriers, squaring parameters, or volume block anomalies.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -322,9 +409,8 @@ export default function App() {
     setAnalysisTabs(newTabsList);
     setActiveAnalysisIndex(newIdx);
 
-    // Fetch deep report from server-side Gemini Core
     try {
-      const res = await fetch(`/api/coin/${asset.id}?lang=${lang}`);
+      const res = await fetch(`/api/coin/${asset.id}?lang=${l}`);
       if (res.ok) {
         const report = await res.json();
         setAnalysisTabs(prev => prev.map((t, idx) => idx === newIdx ? {
@@ -336,14 +422,14 @@ export default function App() {
             {
               id: `init_rep_${Date.now()}`,
               role: "assistant",
-              content: lang === "hinglish"
+              content: l === "hinglish"
                 ? `**${asset.name}** deep cycle scanning parameters loaded successfully! Suggestion call: **${report.signal?.action}** (Probability: **${report.signal?.probabilityOfCall || "N/A"}**). Stop-loss limit specified at: **${report.signal?.executionMatrix?.stopLoss}**.`
                 : `Analytical scan completed for **${asset.name} (${asset.symbol})**. Aegis directional signal issued: **${report.signal?.action}** (Win likelihood: **${report.signal?.probabilityOfCall || "N/A"}**). Matrix stop boundaries: **${report.signal?.executionMatrix?.stopLoss}**.`,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
           ]
         } : t));
-        pushNotification(`Analytical cycle resolved for ${asset.symbol} in ${lang.toUpperCase()}.`);
+        pushNotification(`Analytical cycle resolved for ${asset.symbol} in ${l.toUpperCase()}.`);
       } else {
         throw new Error("Pipeline returned non-OK status");
       }
@@ -390,7 +476,6 @@ export default function App() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    // Update with user query and clean input
     setAnalysisTabs(prev => prev.map((t, idx) => idx === tabIdx ? {
       ...t,
       chatMessages: [...t.chatMessages, userMessage],
@@ -429,6 +514,17 @@ export default function App() {
   };
 
   // Direct Detail Chat (for legacy direct trade chat)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: "welcome_init",
+      role: "assistant",
+      content: "Welcome to **Quantum Intelligence X Specialist Core**. This desk compiles elite technical target pricing, market structure trends, Quantum cyclic anniversary grids, and smart money behaviors.\n\nInput a specific inquiry regarding the selected asset or query general macro trends below.",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
   const handleSendChat = async () => {
     if (!chatInput.trim() || isChatLoading) return;
     const userMessage: ChatMessage = {
@@ -470,304 +566,1053 @@ export default function App() {
     }
   };
 
+  // Persisted general Aegis Copilot chat operation - everywhere on the right
+  const handleSendCopilot = async (customPrompt?: string) => {
+    const txt = (customPrompt || copilotInput).trim();
+    if (!txt || isCopilotLoading) return;
+
+    // Route query safely to active tabs and specialist assistants if detailed or scanned reports views
+    const isDetailView = activeTopTab === "TRADE" && currentView === "DETAIL";
+    const isReportsView = activeTopTab === "ANALYSIS" && activeAnalysisIndex >= 0;
+
+    if (isDetailView && activeAsset) {
+      // Directs to activeCoinReport's direct trade chat helper!
+      setChatInput(txt);
+      setChatMessages(prev => [...prev, {
+        id: "u_c_" + Date.now(),
+        role: "user",
+        content: txt,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }]);
+      setIsCopilotLoading(true);
+      setCopilotInput("");
+      
+      try {
+        const response = await fetch("/api/chat-analyst", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...chatMessages, { role: "user", content: txt }].map(m => ({ role: m.role, content: m.content })),
+            targetCoin: activeAsset,
+            lang: "english"
+          })
+        });
+        if (response.ok) {
+          const reply = await response.json();
+          setChatMessages(prev => [
+            ...prev,
+            {
+              id: reply.id,
+              role: "assistant",
+              content: reply.content,
+              timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsCopilotLoading(false);
+      }
+      return;
+    }
+
+    if (isReportsView) {
+      // Directs to the active research reports dossier chat tab!
+      handleAnalysisChatInputChange(activeAnalysisIndex, txt);
+      const activeTabObj = analysisTabs[activeAnalysisIndex];
+      const userMsg: ChatMessage = {
+        id: "u_c_r_" + Date.now(),
+        role: "user",
+        content: txt,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      
+      setAnalysisTabs(prev => prev.map((t, i) => i === activeAnalysisIndex ? {
+        ...t,
+        chatMessages: [...t.chatMessages, userMsg],
+        chatInput: ""
+      } : t));
+      setIsCopilotLoading(true);
+      setCopilotInput("");
+
+      try {
+        const response = await fetch("/api/chat-analyst", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...activeTabObj.chatMessages, userMsg].map(m => ({ role: m.role, content: m.content })),
+            targetCoin: activeTabObj.coin,
+            lang: activeTabObj.lang
+          })
+        });
+        if (response.ok) {
+          const reply = await response.json();
+          setAnalysisTabs(prev => prev.map((t, idx) => idx === activeAnalysisIndex ? {
+            ...t,
+            chatMessages: [
+              ...t.chatMessages,
+              {
+                id: reply.id,
+                role: "assistant",
+                content: reply.content,
+                timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
+            ]
+          } : t));
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsCopilotLoading(false);
+      }
+      return;
+    }
+
+    // Default to general companion advisor:
+    const userMsg: ChatMessage = {
+      id: "u_g_" + Date.now(),
+      role: 'user',
+      content: txt,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setCopilotGlobalMessages(prev => [...prev, userMsg]);
+    setCopilotInput("");
+    setIsCopilotLoading(true);
+
+    try {
+      const response = await fetch('/api/ai-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [...copilotGlobalMessages, userMsg].map(m => ({ role: m.role, content: m.content })) })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCopilotGlobalMessages(prev => [...prev, {
+          id: data.id,
+          role: 'assistant',
+          content: data.content,
+          timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsCopilotLoading(false);
+    }
+  };
+
+  // Run dynamic scanning on the active asset inside detailed screen
+  const executeDeepScanForActive = async () => {
+    if (!activeAsset) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch(`/api/coin/${activeAsset.id}?lang=english`);
+      if (res.ok) {
+        const report = await res.json();
+        setActiveCoinReport(report);
+        pushNotification(`Compiled quantitative report for ${activeAsset.symbol}.`);
+      }
+    } catch (err) {
+      console.error("Deep scan failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Execute commands received from the CMD command bar modal
+  const handleExecuteCommand = (cmdText: string) => {
+    setShowCommandBar(false);
+    setCommandQuery("");
+    const text = cmdText.trim().toLowerCase();
+
+    if (text === "/dashboard" || text === "dashboard" || text === "home") {
+      setActiveTopTab("TRADE");
+      setCurrentView("DASHBOARD");
+      pushNotification("Navigated to: Mission Control Dashboard.");
+    } else if (text === "/portfolio" || text === "portfolio" || text === "fund") {
+      setActiveTopTab("TRADE"); // Switch to portfolio in bottom
+      setActiveTopTab("CHAT" === "CHAT" ? "CHAT" : "TRADE" as any); // Correct mapping
+      // Oh, let's map it safely matching activeTopTab check
+      setActiveTopTab("TRADE" as any); // Keep trade
+      // Set to special active tab PORTFOLIO which is checked in renderer
+      setActiveTopTab("PORTFOLIO" as any);
+      pushNotification("Navigated to: Fund Manager Ledger.");
+    } else if (text === "/copilot" || text === "ai" || text === "oracle") {
+      setActiveTopTab("CHAT");
+      pushNotification("Navigated to: Aegis AI Oracle Desk.");
+    } else if (text === "/reflash" || text === "refresh" || text === "sync") {
+      fetchGlobalMarketStats();
+      pushNotification("Command Triggered: Synchronized global markets pipeline.");
+    } else if (text.startsWith("/scan ") || text.startsWith("scan ")) {
+      const symbol = text.replace("/scan ", "").replace("scan ", "").trim().toUpperCase();
+      if (marketStats) {
+        const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol);
+        if (coin) {
+          handleSelectAsset(coin);
+        } else {
+          pushNotification(`Command error: Symbol ${symbol} not resolved.`);
+        }
+      }
+    } else if (text.startsWith("/detail ") || text.startsWith("detail ") || text.startsWith("/open ")) {
+      const symbol = text.replace("/detail ", "").replace("detail ", "").replace("/open ", "").trim().toUpperCase();
+      if (marketStats) {
+        const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol);
+        if (coin) {
+          handleOpenDirectTrade(coin);
+        } else {
+          pushNotification(`Command error: Symbol ${symbol} not resolved.`);
+        }
+      }
+    } else {
+      // General search lookup fallback
+      if (marketStats) {
+        const coin = marketStats.trending.find(c => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text);
+        if (coin) {
+          handleSelectAsset(coin);
+        } else {
+          pushNotification(`Unknown command structure: "${cmdText}"`);
+        }
+      }
+    }
+  };
+
   return (
-    <div className={`w-full min-h-screen font-sans flex flex-col transition-colors duration-200 overflow-x-hidden ${
-      isDarkActive ? "bg-[#03060A] text-[#E2E8F0]" : "bg-[#F3F6FA] text-[#0F172A]"
+    <div className={`w-full min-h-screen font-sans flex transition-colors duration-300 overflow-hidden ${
+      isDarkActive 
+        ? "bg-[#08080A] text-[#EDEAE3]" 
+        : "bg-[#F7F5F0] text-[#1A1A1F]"
     }`}>
-      {/* HEADER */}
-      <header className={`h-16 px-4 md:px-6 border-b flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl ${
-        isDarkActive ? "border-white/5 bg-[#03060A]/85" : "border-black/5 bg-[#F3F6FA]/85"
-      }`}>
-        <div className="flex items-center gap-3 md:gap-6">
-          {currentView === "DETAIL" && activeTopTab === "TRADE" && (
-            <button 
-              onClick={() => setCurrentView("DASHBOARD")}
-              className={`p-2 rounded-md transition-all flex items-center gap-2 text-[10px] font-black border tracking-wider cursor-pointer ${
-                isDarkActive ? "border-white/10 hover:bg-white/10" : "border-black/10 hover:bg-black/10"
-              }`}
-            >
-              <ChevronRight className="w-3.5 h-3.5 rotate-180" />
-              BACK TO TERMINAL
-            </button>
-          )}
-          <div className="flex items-center gap-2 flex-shrink-0 cursor-pointer animate-in slide-in-from-left duration-500" onClick={() => {
-            setCurrentView("DASHBOARD");
-            setActiveTopTab("TRADE");
-          }}>
-            <div className="w-8 h-8 rounded-md bg-[#00D1FF] flex items-center justify-center font-black text-sm text-black">QX</div>
-            <div className="flex flex-col">
-               <span className="font-black tracking-tight text-xs md:text-sm leading-none">QUANTUM<span className="text-[#00D1FF]">X</span></span>
-               <span className="text-[7px] tracking-[0.2em] font-medium leading-none mt-1 opacity-40 uppercase">Intelligence Terminal</span>
+      
+      {/* ================= LEFT COMMAND SIDEBAR DIRECTORY ================= */}
+      <aside className={`h-screen border-r flex flex-col justify-between transition-all shrink-0 z-50 fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:relative ${
+        isDarkActive 
+          ? "border-[rgba(255,255,255,0.06)] bg-[#0C0C10]" 
+          : "border-[rgba(26,26,31,0.06)] bg-[#FDFCF7]"
+      } ${isSidebarCollapsed ? "w-16" : "w-64"}`}>
+        
+        <div>
+          {/* Logo Brand Header */}
+          <div className="h-16 px-5 border-b border-current border-opacity-5 flex items-center justify-between">
+            {!isSidebarCollapsed ? (
+              <div 
+                onClick={() => { setActiveTopTab("TRADE"); setCurrentView("DASHBOARD"); }}
+                className="flex items-center gap-2.5 cursor-pointer select-none"
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-serif text-sm font-black border ${
+                  isDarkActive 
+                    ? "bg-[#14141E] border-[rgba(255,255,255,0.1)] text-[#C9A96A]" 
+                    : "bg-white border-black/10 text-[#9C7B3E]"
+                }`}>
+                  Φ
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-serif font-black tracking-tight text-xs leading-none">
+                    QUANTUM<span className={isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}>OS</span>
+                  </span>
+                  <span className="text-[7.5px] font-mono tracking-widest uppercase opacity-45 leading-none mt-1">
+                    HEDGE COGNITIVE NODE
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center font-serif text-sm font-bold bg-[#C9A96A]/10 text-[#C9A96A]">
+                Φ
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-1 rounded-md opacity-45 hover:opacity-100 md:hidden"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className={`p-1 rounded-md opacity-45 hover:opacity-100 hidden md:block cursor-pointer ${
+                  isDarkActive ? "hover:bg-white/5" : "hover:bg-black/5"
+                }`}
+              >
+                <ChevronLeft className={`w-4 h-4 transition-transform ${isSidebarCollapsed ? "rotate-180" : ""}`} />
+              </button>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <button onClick={fetchGlobalMarketStats} className="hidden sm:flex items-center gap-2 p-2 rounded-md border border-white/10 text-[10px] font-mono cursor-pointer">
-            <RefreshCw className={`w-3 h-3 ${isRefreshing ? "animate-spin text-[#00D1FF]" : ""}`} />
-            <span>SYNC: {timeSinceUpdate}S</span>
-          </button>
-          
-          <div className={`flex items-center p-0.5 rounded-lg border ${isDarkActive ? "border-white/5 bg-white/5" : "border-black/5 bg-black/5"}`}>
+          {/* Directory Workspace Links */}
+          <nav className="p-4 flex flex-col gap-1.5 mt-2">
             {[
-              { id: "dark", icon: <Moon className="w-3 h-3" /> },
-              { id: "light", icon: <Sun className="w-3 h-3" /> },
-              { id: "system", icon: <Monitor className="w-3 h-3" /> }
-            ].map(t => (
-              <button key={t.id} onClick={() => setTheme(t.id as any)} className={`p-1.5 rounded-md transition-all cursor-pointer ${theme === t.id ? "bg-[#00D1FF] text-black" : "opacity-40"}`}>
-                {t.icon}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
+              { 
+                id: "DASHBOARD", 
+                tab: "TRADE", 
+                view: "DASHBOARD", 
+                label: "Mission Control", 
+                detail: "Global telemetry stream",
+                icon: <Compass className="w-4 h-4" /> 
+              },
+              { 
+                id: "DETAIL", 
+                tab: "TRADE", 
+                view: "DETAIL", 
+                label: "Intelligence Hub", 
+                detail: "Detailed spot terminal",
+                icon: <Cpu className="w-4 h-4" /> 
+              },
+              { 
+                id: "ANALYSIS", 
+                tab: "ANALYSIS", 
+                view: undefined, 
+                label: "Research Briefings", 
+                detail: "Specialist dossier files",
+                count: analysisTabs.length, 
+                icon: <BookOpen className="w-4 h-4" /> 
+              },
+              { 
+                id: "PORTFOLIO", 
+                tab: "PORTFOLIO", 
+                view: undefined, 
+                label: "Prime Ledger", 
+                detail: "Hedge asset management",
+                icon: <Briefcase className="w-4 h-4" /> 
+              },
+              { 
+                id: "CHAT", 
+                tab: "CHAT", 
+                view: undefined, 
+                label: "Oracle Copilot Core", 
+                detail: "Global cognitive core",
+                icon: <MessageSquare className="w-4 h-4" /> 
+              }
+            ].map((link) => {
+              const matchesTab = activeTopTab === link.tab;
+              const matchesView = link.view === undefined || currentView === link.view;
+              const isLinkActive = matchesTab && matchesView;
 
-      {/* TICKER */}
-      <section className={`h-8 border-b flex items-center overflow-hidden text-[9px] font-mono tracking-widest uppercase ${
-        isDarkActive ? "bg-[#050B12]/80 border-white/5" : "bg-[#EDF2F8]/80 border-black/5"
-      }`}>
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-4">
-           {marketStats && (
-              <div className="flex items-center gap-4 overflow-x-auto whitespace-nowrap no-scrollbar flex-1">
-                 <span className="opacity-40">BTC: <span className="text-[#00FF85] font-bold">${marketStats.btcPrice.toLocaleString()}</span></span>
-                 <span className="opacity-40">ETH: <span className="text-[#00D1FF] font-bold">${marketStats.ethPrice.toLocaleString()}</span></span>
-                 <span className="opacity-40">DOM: <span className="text-white font-bold">{marketStats.btcDominance.toFixed(1)}%</span></span>
-                 <span className="opacity-40">FNG: <span className="text-[#FFB800] font-bold">{marketStats.fearAndGreedIndex} {marketStats.fearAndGreedLabel}</span></span>
-              </div>
-           )}
-           <div className="hidden sm:flex items-center gap-2">
-              <span className="flex h-1.5 w-1.5 rounded-full bg-[#00FF85] animate-pulse"></span>
-              <span className="opacity-30">LATENCY: {latency}MS</span>
-           </div>
-        </div>
-      </section>
+              return (
+                <button
+                  key={link.id}
+                  onClick={() => {
+                    setActiveTopTab(link.tab as any);
+                    if (link.view) setCurrentView(link.view as any);
+                    setIsMobileMenuOpen(false);
+                    // Automatically load bitcoin if entering hub with no active asset
+                    if (link.id === "DETAIL" && !activeAsset && marketStats) {
+                      setActiveAsset(marketStats.trending[0]);
+                      setSelectedCoinId(marketStats.trending[0].id);
+                    }
+                  }}
+                  className={`w-full py-2.5 rounded-xl text-left flex items-center justify-between transition-all select-none cursor-pointer border ${
+                    isLinkActive
+                      ? (isDarkActive 
+                          ? "bg-[#14141A] border-white/5 text-[#EDEAE3] font-bold" 
+                          : "bg-[#F3EFE7] border-black/5 text-[#1A1A1F] font-bold")
+                      : "bg-transparent border-transparent opacity-60 hover:opacity-100 hover:bg-black/[0.01] dark:hover:bg-white/[0.02]"
+                  } ${isSidebarCollapsed ? "px-2.5 justify-center" : "px-3.5"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={isLinkActive ? (isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]") : "text-current"}>
+                      {link.icon}
+                    </span>
+                    {!isSidebarCollapsed && (
+                      <div className="flex flex-col leading-none">
+                        <span className="text-[11px] uppercase tracking-wider font-bold">{link.label}</span>
+                        <span className="text-[7.5px] opacity-40 font-mono mt-0.5 whitespace-nowrap">{link.detail}</span>
+                      </div>
+                    )}
+                  </div>
 
-      {/* WORKSPACE NAVIGATION BAR */}
-      <section className={`w-full border-b backdrop-blur-md sticky top-[97px] z-40 transition-colors ${
-        isDarkActive ? "bg-[#04080F]/90 border-white/5" : "bg-[#E6ECF4]/90 border-black/5"
-      }`}>
-         <div className="w-full max-w-7xl mx-auto px-2 md:px-6 py-2.5 flex items-center justify-start gap-1 overflow-x-auto no-scrollbar scroll-smooth snap-x">
-            {[
-               { id: "TRADE", label: "Direct Trade", count: undefined, icon: <Sliders className="w-3.5 h-3.5" /> },
-               { id: "ANALYSIS", label: "Quantum Analysis", count: analysisTabs.length, icon: <Radio className="w-3.5 h-3.5" /> },
-               { id: "PORTFOLIO", label: "Portfolio", count: undefined, icon: <Briefcase className="w-3.5 h-3.5" /> },
-               { id: "CHAT", label: "Ai Assistant", count: undefined, icon: <MessageSquare className="w-3.5 h-3.5" /> }
-            ].map((tab) => {
-               const isActive = activeTopTab === tab.id;
-               return (
-                  <button
-                     key={tab.id}
-                     onClick={() => setActiveTopTab(tab.id as any)}
-                     className={`py-2 px-4 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer flex-shrink-0 snap-center ${
-                        isActive 
-                           ? "bg-[#00D1FF] text-black font-extrabold shadow-lg scale-105" 
-                           : "opacity-50 hover:bg-white/5 hover:opacity-100"
-                     }`}
-                  >
-                     {tab.icon}
-                     <span className="whitespace-nowrap">{tab.label}</span>
-                     {tab.count !== undefined && tab.count > 0 && (
-                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-black leading-none ${isActive ? "bg-black text-white" : "bg-[#00D1FF]/20 text-[#00D1FF]"}`}>
-                           {tab.count}
-                        </span>
-                     )}
-                  </button>
-               );
+                  {!isSidebarCollapsed && link.count !== undefined && link.count > 0 && (
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold ${
+                      isDarkActive ? "bg-[#C9A96A]/20 text-[#C9A96A]" : "bg-[#9C7B3E]/15 text-[#9C7B3E]"
+                    }`}>
+                      {link.count}
+                    </span>
+                  )}
+                </button>
+              );
             })}
-         </div>
-      </section>
+          </nav>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 py-6 pb-20">
-         {activeTopTab === "TRADE" ? (
-            currentView === "DASHBOARD" ? (
-              <MarketDashboard 
-                marketStats={marketStats}
-                selectedCoinId={selectedCoinId}
-                onSelectAsset={handleSelectAsset}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                searchResults={searchResults}
-                isSearchFocused={isSearchFocused}
-                setIsSearchFocused={setIsSearchFocused}
-                notifications={notifications}
-                isDarkActive={isDarkActive}
-                timeSinceUpdate={timeSinceUpdate}
-              />
-            ) : (
-              activeAsset && (
-                <CoinDetail 
-                   activeAsset={activeAsset}
-                   report={activeCoinReport}
-                   onDeepScan={() => {
-                      setSelectedModalAsset(activeAsset);
-                      setShowLangSelectionStep(true);
-                      setShowSelectionModal(true);
-                   }}
-                   isAnalyzing={isAnalyzing}
-                   chatMessages={chatMessages}
-                   chatInput={chatInput}
-                   setChatInput={setChatInput}
-                   onSendChat={handleSendChat}
-                   isChatLoading={isChatLoading}
-                   isDarkActive={isDarkActive}
-                   userProfile={userProfile}
-                   onTrade={handleTrade}
-                />
-              )
-            )
-         ) : activeTopTab === "ANALYSIS" ? (
-            <AnalysisTabCenter 
-              tabs={analysisTabs}
-              activeIndex={activeAnalysisIndex}
-              onSelectTab={setActiveAnalysisIndex}
-              onCloseTab={handleCloseAnalysisTab}
-              onSendChat={handleSendAnalysisChat}
-              onChatInputChange={handleAnalysisChatInputChange}
-              isDarkActive={isDarkActive}
-              onOpenTradeView={(asset) => {
-                 setActiveAsset(asset);
-                 setCurrentView("DETAIL");
-                 setActiveTopTab("TRADE");
-              }}
-              allAssets={marketStats?.trending || []}
-              onTriggerScanForAsset={(asset) => {
-                 setSelectedModalAsset(asset);
-                 setShowLangSelectionStep(true);
-                 setShowSelectionModal(true);
-              }}
-            />
-         ) : activeTopTab === "CHAT" ? (
-            <AiAssistantTab isDarkActive={isDarkActive} />
-         ) : (
-            <PortfolioCenter 
-              profile={userProfile}
-              trendingAssets={marketStats?.trending || []}
-              isDarkActive={isDarkActive}
-            />
-         )}
-      </main>
+          {/* Collapsible active diagnostics logs on left sidebar */}
+          {!isSidebarCollapsed && (
+            <div className="p-4 mx-4 mt-6 border border-dashed rounded-xl font-mono text-[8.5px]" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+               <span className="font-bold opacity-45 uppercase tracking-widest block mb-2 text-[#5EEAD4]">Active Pipeline</span>
+               <div className="flex flex-col gap-1.5 opacity-60">
+                 {notifications.slice(0, 2).map((item, id) => (
+                    <div key={id} className="truncate">» {item}</div>
+                 ))}
+               </div>
+            </div>
+          )}
+        </div>
 
-      {/* DOCK SELECTION PROMPT MODAL */}
-      {showSelectionModal && selectedModalAsset && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl relative animate-in zoom-in-95 duration-200 ${
-            isDarkActive ? "bg-[#080E17] border-white/10 text-[#E2E8F0]" : "bg-white border-black/10 text-slate-800"
-          }`}>
+        {/* Bottom profile / holdings indicators (Hedge fund design) */}
+        <div className="p-4 border-t border-current border-opacity-5 flex flex-col gap-3">
+          
+          {/* Theme selection panel */}
+          {!isSidebarCollapsed ? (
+            <div className={`p-1.5 rounded-lg border flex items-center justify-between ${
+              isDarkActive ? "bg-[#14141E] border-white/5" : "bg-[#F3EFE7] border-black/5"
+            }`}>
+              {[
+                { id: "dark", label: "Dark", icon: <Moon className="w-3 h-3" /> },
+                { id: "light", label: "Light", icon: <Sun className="w-3 h-3" /> },
+                { id: "system", label: "Sys", icon: <Monitor className="w-3 h-3" /> }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id as any)}
+                  className={`py-1 px-3.5 rounded text-[8.5px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+                    theme === t.id
+                      ? (isDarkActive ? "bg-[#C9A96A] text-black" : "bg-[#9C7B3E] text-white")
+                      : "opacity-45 hover:opacity-90"
+                  }`}
+                >
+                  {t.icon}
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
             <button 
-              onClick={() => setShowSelectionModal(false)}
-              className="absolute top-4 right-4 opacity-40 hover:opacity-100 transition-all rounded-full p-1 cursor-pointer"
+              onClick={() => setTheme(isDarkActive ? "light" : "dark")}
+              className="w-8 h-8 rounded-lg mx-auto flex items-center justify-center border border-current border-opacity-10 bg-black/5 text-current hover:opacity-100"
             >
-              <X className="w-5 h-5" />
+              {isDarkActive ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
+          )}
 
-            {!showLangSelectionStep ? (
-              <div className="flex flex-col gap-6">
-                <div>
-                  <span className="text-[9px] font-mono tracking-[0.2em] opacity-40 uppercase block mb-1">Asset Operational Workspace</span>
-                  <h3 className="text-lg font-black tracking-tight">{selectedModalAsset.name} ({selectedModalAsset.symbol})</h3>
-                  <p className="text-xs opacity-60 leading-relaxed mt-1 font-sans">
-                     Choose how you wish to load this asset on the specialist core panels.
-                  </p>
+          {/* Quick Fund Net Value progress widget */}
+          {!isSidebarCollapsed ? (
+             <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-black/15 border text-[10px] font-black ${
+                  isDarkActive ? "border-white/5 text-[#C9A96A]" : "border-black/5 text-[#9C7B3E]"
+                }`}>
+                  F
                 </div>
-
-                <div className="flex flex-col gap-3">
-                  {/* Direct Trade view */}
-                  <button
-                    onClick={() => handleOpenDirectTrade(selectedModalAsset)}
-                    className={`p-4 rounded-xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer ${
-                      isDarkActive 
-                        ? "bg-white/5 border-white/10 hover:border-[#00D1FF]/40 hover:bg-white/[0.08]" 
-                        : "bg-black/[0.02] border-black/10 hover:border-[#0057FF]/40 hover:bg-black/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Sliders className="w-4 h-4 text-[#00FF85]" />
-                      <span className="font-sans font-black text-xs uppercase tracking-wider text-[#00FF85]">Direct Trade terminal</span>
-                    </div>
-                    <p className="text-[10px] opacity-60 leading-relaxed font-sans mt-1">
-                       Immediate access to live historical charts, paper trades execution, and active asset balance ledger. Zero analysis compiling downtime.
-                    </p>
-                  </button>
-
-                  {/* Quantitative Scan */}
-                  <button
-                    onClick={() => setShowLangSelectionStep(true)}
-                    className={`p-4 rounded-xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer ${
-                      isDarkActive 
-                        ? "bg-white/5 border-white/10 hover:border-[#00D1FF]/40 hover:bg-white/[0.08]" 
-                        : "bg-black/[0.02] border-black/10 hover:border-[#0057FF]/40 hover:bg-black/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Radio className="w-4 h-4 text-[#00D1FF] animate-pulse" />
-                      <span className="font-sans font-black text-xs uppercase tracking-wider text-[#00D1FF]">Quantum deep scan analysis</span>
-                    </div>
-                    <p className="text-[10px] opacity-60 leading-relaxed font-sans mt-1">
-                       Process multi-layer geometric calculations including Quantum square matrices, stop limits, and probability success call metrics.
-                    </p>
-                  </button>
+                <div className="flex flex-col leading-none">
+                  <span className="text-[8px] font-mono opacity-40 font-bold uppercase tracking-wider">Prime Valuation</span>
+                  <span className="text-xs font-mono font-black mt-0.5 tracking-tight text-[#5EEAD4]">
+                    ${profileNav.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                  <div className="w-24 bg-black/20 h-0.5 rounded-full mt-1 overflow-hidden">
+                     <div className="bg-[#5EEAD4] h-full" style={{ width: "74%" }}></div>
+                  </div>
                 </div>
+             </div>
+          ) : (
+             <div className="w-2 h-2 rounded-full bg-[#5EEAD4] mx-auto animate-pulse"></div>
+          )}
+          
+        </div>
+
+      </aside>
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* ================= MAIN CONTENT PANE (Scrollable container) ================= */}
+      <section className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        {/* A. Top Chronicle Ticker & Command trigger Bar */}
+        <header className={`h-16 px-4 md:px-6 border-b flex items-center justify-between backdrop-blur-xl shrink-0 z-30 transition-all ${
+          isDarkActive 
+            ? "border-[rgba(255,255,255,0.06)] bg-[#0A0A0C]/80" 
+            : "border-[rgba(26,26,31,0.06)] bg-[#FDFCF7]/80"
+        }`}>
+          
+          <div className="flex items-center gap-4 flex-1">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden">
+              <Menu className="w-5 h-5 opacity-50" />
+            </button>
+            {/* Back to dashboard handle */}
+            {currentView === "DETAIL" && activeTopTab === "TRADE" && (
+              <button 
+                onClick={() => setCurrentView("DASHBOARD")}
+                className={`p-2.5 rounded-xl border transition-all text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 ${
+                  isDarkActive 
+                    ? "border-white/10 text-[#EDEAE3] bg-black/20 hover:border-[#C9A96A]" 
+                    : "border-black/10 text-[#1A1A1F] bg-white hover:bg-black/[0.02]"
+                }`}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </button>
+            )}
+
+            {/* INTERACTIVE UNIVERSAL CMD BAR TRIGGER (Fintech Style) */}
+            <div 
+              onClick={() => setShowCommandBar(true)}
+              className={`flex-1 max-w-lg h-10 px-4 rounded-xl border flex items-center justify-between cursor-pointer group transition-all select-none ${
+                isDarkActive 
+                  ? "border-[rgba(255,255,255,0.06)] bg-black/20 hover:border-[#C9A96A]/45 hover:bg-black/40" 
+                  : "border-[rgba(26,26,31,0.06)] bg-[#F5F2EA]/85 hover:border-[#9C7B3E]/45 hover:bg-[#F0EBE0]"
+              }`}
+            >
+              <div className="flex items-center gap-2.5 opacity-40 group-hover:opacity-65 transition-all text-xs">
+                <Search className="w-3.5 h-3.5" />
+                <span className="font-mono text-[10px] uppercase font-bold tracking-wider">Search symbol or Commands (e.g. /scan BTC)...</span>
               </div>
-            ) : (
-              <div className="flex flex-col gap-6">
-                <div>
-                  <span className="text-[9px] font-mono tracking-[0.2em] opacity-40 uppercase block mb-1">Local Configuration</span>
-                  <h3 className="text-lg font-black tracking-tight">Configure translation vector</h3>
-                  <p className="text-xs opacity-60 leading-relaxed mt-1 font-sans">
-                     The Aegis scan must assemble its reports in your preferred communication model.
-                  </p>
+              <div className="flex items-center gap-1 opacity-30 font-mono text-[9px] font-bold">
+                <Keyboard className="w-3.5 h-3.5" />
+                <span>PRESS "/"</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Asset Ticker rates */}
+          <div className="flex items-center gap-5 shrink-0 pl-4 border-l border-current border-opacity-5">
+            {marketStats && (
+              <div className="hidden lg:flex items-center gap-5 text-[10px] font-mono leading-none">
+                <div className="flex flex-col">
+                  <span className="opacity-35 font-bold uppercase text-[7.5px]">BTC SPOT</span>
+                  <span className={`font-black mt-0.5 ${isDarkActive ? "text-[#5EEAD4]" : "text-[#9C7B3E]"}`}>${marketStats.btcPrice.toLocaleString()}</span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {/* English Card */}
-                  <div
-                    onClick={() => setSelectedModalLang("english")}
-                    className={`p-4 rounded-xl border text-center transition-all cursor-pointer select-none ${
-                      selectedModalLang === "english" 
-                        ? (isDarkActive ? "bg-[#00D1FF]/10 border-[#00D1FF] text-[#00D1FF]" : "bg-[#0057FF]/10 border-[#0057FF] text-[#0057FF]")
-                        : (isDarkActive ? "bg-white/5 border-white/5 opacity-55 hover:opacity-100" : "bg-black/[0.02] border-black/5 opacity-55 hover:opacity-100")
-                    }`}
-                  >
-                    <span className="block font-black text-xs uppercase">English</span>
-                    <span className="block text-[8px] opacity-50 font-bold uppercase tracking-wider mt-1 font-sans">Standard translation</span>
-                  </div>
-
-                  {/* Hinglish Card */}
-                  <div
-                    onClick={() => setSelectedModalLang("hinglish")}
-                    className={`p-4 rounded-xl border text-center transition-all cursor-pointer select-none ${
-                      selectedModalLang === "hinglish" 
-                        ? (isDarkActive ? "bg-[#00D1FF]/10 border-[#00D1FF] text-[#00D1FF]" : "bg-[#0057FF]/10 border-[#0057FF] text-[#0057FF]")
-                        : (isDarkActive ? "bg-white/5 border-white/5 opacity-55 hover:opacity-100" : "bg-black/[0.02] border-[#0057FF] opacity-55 hover:opacity-100")
-                    }`}
-                  >
-                    <span className="block font-black text-xs uppercase">Hinglish</span>
-                    <span className="block text-[8px] opacity-50 font-bold uppercase tracking-wider mt-1 font-sans">Hinglish Translation</span>
-                  </div>
+                <div className="flex flex-col">
+                  <span className="opacity-35 font-bold uppercase text-[7.5px]">ETH SPOT</span>
+                  <span className={`font-black mt-0.5 ${isDarkActive ? "text-[#EDEAE3]" : "text-[#9C7B3E]"}`}>${marketStats.ethPrice.toLocaleString()}</span>
                 </div>
-
-                <div className="flex gap-3 justify-end mt-2">
-                  <button
-                    onClick={() => setShowLangSelectionStep(false)}
-                    className={`flex-1 py-3 border rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all hover:bg-white/5 ${
-                      isDarkActive ? "border-white/10 text-white" : "border-black/10 text-slate-700"
-                    }`}
-                  >
-                     Back
-                  </button>
-                  <button
-                    onClick={() => handleLaunchAnalysis(selectedModalAsset, selectedModalLang)}
-                    className="flex-2 py-3 bg-[#00D1FF] hover:bg-[#00b2d8] text-black font-black uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-md cursor-pointer"
-                  >
-                     LAUNCH SCAN ENGINES
-                  </button>
+                <div className="flex flex-col">
+                  <span className="opacity-35 font-bold uppercase text-[7.5px]">FEAR INDEX</span>
+                  <span className="font-black mt-0.5 text-[#C9A96A]">{marketStats.fearAndGreedIndex} {marketStats.fearAndGreedLabel}</span>
                 </div>
               </div>
             )}
+
+            {/* latency & refresh controls */}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={fetchGlobalMarketStats}
+                className={`p-2.5 rounded-xl border hover:scale-[1.02] cursor-pointer transition-all ${
+                  isDarkActive ? "border-white/5 text-[#EDEAE3]/65" : "border-black/5 text-[#1A1A1F]/65"
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#C9A96A]" : "opacity-60"}`} />
+              </button>
+
+              <button 
+                onClick={() => setIsCopilotOpen(!isCopilotOpen)}
+                className={`p-2.5 rounded-xl border text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
+                  isCopilotOpen 
+                    ? (isDarkActive ? "bg-[#C9A96A]/10 border-[#C9A96A]/20 text-[#C9A96A]" : "bg-[#9C7B3E]/10 border-[#9C7B3E]/20 text-[#9C7B3E]")
+                    : (isDarkActive ? "border-white/5 text-[#EDEAE3]/65 bg-transparent" : "border-black/5 text-[#1A1A1F]/65 bg-transparent")
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Copilot</span>
+              </button>
+            </div>
           </div>
+
+        </header>
+
+        {/* B. Main Viewport Render slot */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 no-scrollbar">
+          
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${activeTopTab}_${currentView}_${selectedCoinId}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="w-full h-full"
+            >
+              {activeTopTab === "TRADE" ? (
+                currentView === "DASHBOARD" ? (
+                  <MarketDashboard 
+                    marketStats={marketStats}
+                    selectedCoinId={selectedCoinId}
+                    onSelectAsset={handleSelectAsset}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    searchResults={searchResults}
+                    isSearchFocused={isSearchFocused}
+                    setIsSearchFocused={setIsSearchFocused}
+                    notifications={notifications}
+                    isDarkActive={isDarkActive}
+                    timeSinceUpdate={timeSinceUpdate}
+                  />
+                ) : (
+                  activeAsset && (
+                    <CoinDetail 
+                       activeAsset={activeAsset}
+                       report={activeCoinReport}
+                       onDeepScan={executeDeepScanForActive}
+                       isAnalyzing={isAnalyzing}
+                       chatMessages={chatMessages}
+                       chatInput={chatInput}
+                       setChatInput={setChatInput}
+                       onSendChat={handleSendChat}
+                       isChatLoading={isChatLoading}
+                       isDarkActive={isDarkActive}
+                       userProfile={userProfile}
+                       onTrade={handleTrade}
+                    />
+                  )
+                )
+              ) : activeTopTab === "ANALYSIS" ? (
+                <AnalysisTabCenter 
+                  tabs={analysisTabs}
+                  activeIndex={activeAnalysisIndex}
+                  onSelectTab={setActiveAnalysisIndex}
+                  onCloseTab={handleCloseAnalysisTab}
+                  onSendChat={handleSendAnalysisChat}
+                  onChatInputChange={handleAnalysisChatInputChange}
+                  isDarkActive={isDarkActive}
+                  onOpenTradeView={(asset) => {
+                     setActiveAsset(asset);
+                     setCurrentView("DETAIL");
+                     setActiveTopTab("TRADE");
+                  }}
+                  allAssets={marketStats?.trending || []}
+                  onTriggerScanForAsset={handleSelectAsset}
+                />
+              ) : activeTopTab === "CHAT" ? (
+                <AiAssistantTab isDarkActive={isDarkActive} />
+              ) : (
+                <PortfolioCenter 
+                  profile={userProfile}
+                  trendingAssets={marketStats?.trending || []}
+                  isDarkActive={isDarkActive}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+
         </div>
-      )}
+
+      </section>
+
+      {/* ================= PERSISTENT RIGHT COMPANION SLIDING AEGIS COPILOT ================= */}
+      <AnimatePresence>
+        {isCopilotOpen && (
+          <motion.aside
+            initial={{ opacity: 0, x: 280 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 280 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+            className={`w-full md:w-72 lg:w-80 h-screen border-l flex flex-col justify-between shrink-0 z-40 fixed md:relative inset-y-0 right-0 shadow-2xl ${
+              isDarkActive 
+                ? "border-[rgba(255,255,255,0.06)] bg-[#0C0C10]" 
+                : "border-[rgba(26,26,31,0.06)] bg-[#FDFCF7]"
+            }`}
+          >
+            {/* Header portion */}
+            <div className="p-4 border-b border-current border-opacity-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A] animate-pulse" : "text-[#9C7B3E] animate-pulse"}`} />
+                <div className="flex flex-col leading-none">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#C9A96A]">Aegis Co-Pilot</span>
+                  <span className="text-[8px] font-mono opacity-40 uppercase tracking-widest mt-1">State-aware advisor desk</span>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setIsCopilotOpen(false)}
+                className={`p-1 rounded opacity-45 hover:opacity-100 transition-all cursor-pointer ${
+                  isDarkActive ? "hover:bg-white/5" : "hover:bg-black/5"
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* STATE-AWARE COMPANION DIALOGUES LIST */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 no-scrollbar">
+              
+              {/* Context spec tags */}
+              <div className="p-2.5 rounded-lg border text-[8.5px] font-mono uppercase bg-black/10" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}>
+                 <div className="flex justify-between items-center text-[#5EEAD4]">
+                   <span>ACTIVE COPILOT SYNC:</span>
+                   <span>NOMINAL</span>
+                 </div>
+                 <div className="opacity-45 mt-1 leading-normal truncate">
+                   {activeTopTab === "TRADE" && currentView === "DETAIL" && activeAsset
+                     ? `SCREEN: DETAIL CENTER // SPECIALIST: ${activeAsset.symbol}`
+                     : activeTopTab === "ANALYSIS" && activeAnalysisIndex >= 0
+                     ? `SCREEN: RESEARCH DOSSIER // SPECIALIST: ${analysisTabs[activeAnalysisIndex].coin.symbol}`
+                     : "SCREEN: GLOBAL COMPANION // GENERAL ORACLE CORE"
+                   }
+                 </div>
+              </div>
+
+              {/* Message timeline viewport */}
+              <div className="space-y-4 pr-1">
+                {(() => {
+                  let timeline = copilotGlobalMessages;
+                  if (activeTopTab === "TRADE" && currentView === "DETAIL") {
+                    timeline = chatMessages;
+                  } else if (activeTopTab === "ANALYSIS" && activeAnalysisIndex >= 0) {
+                    timeline = analysisTabs[activeAnalysisIndex].chatMessages;
+                  }
+
+                  return timeline.slice(-6).map((msg) => {
+                    const isUser = msg.role === "user";
+                    return (
+                      <div key={msg.id} className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+                        <div className={`px-3 py-2 rounded-xl text-[10px] leading-relaxed max-w-[90%] shadow-sm ${
+                          isUser
+                            ? (isDarkActive ? "bg-[#C9A96A] text-black font-semibold rounded-tr-none" : "bg-[#9C7B3E] text-white font-semibold rounded-tr-none")
+                            : (isDarkActive 
+                                ? "bg-[#14141A] text-[#EDEAE3] border border-white/5 rounded-tl-none" 
+                                : "bg-[#F3EFE7]/80 text-[#1A1A1F] border border-black/5 rounded-tl-none")
+                        }`}>
+                          {msg.content}
+                        </div>
+                        <span className="text-[7.5px] font-mono opacity-30 mt-0.5 px-0.5">{msg.timestamp}</span>
+                      </div>
+                    );
+                  });
+                })()}
+
+                {isCopilotLoading && (
+                   <div className="flex gap-1.5 items-center opacity-55 font-mono text-[8.5px]">
+                      <RefreshCw className="w-3 h-3 text-[#C9A96A] animate-spin" />
+                      <span>HEURISTIC PROCESSING PIPELINE ENGINE...</span>
+                   </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Bottom quick suggestions & prompt inputs area */}
+            <div className="p-4 border-t border-current border-opacity-5 space-y-3.5 bg-black/15">
+              
+              {/* DYNAMIC ACTION TRIGGER CHIPS (State aware!) */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[8px] font-mono font-bold opacity-30 uppercase tracking-widest block font-bold">Suggested Cognitive actions</span>
+                <div className="flex flex-wrap gap-1">
+                  {(() => {
+                    const isDetail = activeTopTab === "TRADE" && currentView === "DETAIL" && activeAsset;
+                    const isReports = activeTopTab === "ANALYSIS" && activeAnalysisIndex >= 0;
+
+                    let chips = [
+                      "Calculate Portfolio beta indicators",
+                      "Analyze current macro liquidity anomalies",
+                      "Locate smart money accumulation blocks"
+                    ];
+
+                    if (isDetail && activeAsset) {
+                      chips = [
+                        `Is ${activeAsset.symbol}'s squaring pivot verified?`,
+                        `Detail recent liquidity trapping ranges`,
+                        `Project ultimate resistance boundaries`
+                      ];
+                    } else if (isReports) {
+                      const coin = analysisTabs[activeAnalysisIndex].coin;
+                      chips = [
+                        `Highlight ${coin.symbol}'s sovereign volatility risks`,
+                        `Summarize execution forecasts`,
+                        `Analyze market psychology indices`
+                      ];
+                    }
+
+                    return chips.map((txt, id) => (
+                      <button
+                        key={id}
+                        onClick={() => handleSendCopilot(txt)}
+                        className={`text-[8.5px] text-left leading-snug px-2 py-1 rounded border transition-all hover:scale-[1.01] cursor-pointer block w-full ${
+                          isDarkActive 
+                            ? "bg-[#14141E] border-white/5 text-[#EDEAE3]/80 hover:border-[#C9A96A]" 
+                            : "bg-white border-black/5 text-[#1A1A1F]/85 hover:border-[#9C7B3E]"
+                        }`}
+                      >
+                        » {txt}
+                      </button>
+                    ));
+                  })()}
+                </div>
+              </div>
+
+              {/* Interactive prompt input */}
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={copilotInput}
+                  onChange={(e) => setCopilotInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendCopilot()}
+                  placeholder="Direct prompt co-pilot desk..."
+                  className={`w-full h-9 pl-3 pr-9 border rounded-lg text-[10px] transition-all outline-none leading-none ${
+                    isDarkActive 
+                      ? "bg-black text-white border-white/10 focus:border-[#C9A96A]/60" 
+                      : "bg-white text-black border-black/10 focus:border-[#9C7B3E]/60"
+                  }`}
+                />
+                <button 
+                  onClick={() => handleSendCopilot()}
+                  disabled={!copilotInput.trim() || isCopilotLoading}
+                  className={`absolute right-1 top-1 h-7 px-2.5 text-[8px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer ${
+                    isDarkActive ? "bg-[#C9A96A] text-black" : "bg-[#9C7B3E] text-white"
+                  }`}
+                >
+                  Ask
+                </button>
+              </div>
+
+            </div>
+
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* ================= UNIVERSAL CMD COMMAND BAR DIALOG OVERLAY ================= */}
+      <AnimatePresence>
+        {showCommandBar && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: -20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className={`w-full max-w-xl rounded-2xl border p-4 shadow-2xl relative ${
+                isDarkActive ? "bg-[#101014] border-white/10 text-white" : "bg-white border-black/10 text-black"
+              }`}
+            >
+              
+              {/* CMD input */}
+              <div className="flex items-center gap-3 border-b pb-3 mb-3" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+                <Search className="w-4 h-4 opacity-40" />
+                <input 
+                  type="text"
+                  autoFocus
+                  placeholder="Execute cmd (e.g. /dashboard, /portfolio) or search symbol..."
+                  value={commandQuery}
+                  onChange={(e) => setCommandQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleExecuteCommand(commandQuery)}
+                  className="flex-1 bg-transparent border-none outline-none text-xs font-mono placeholder-current placeholder-opacity-30 h-8"
+                />
+                <button 
+                  onClick={() => setShowCommandBar(false)}
+                  className={`px-2 py-1 rounded text-[8px] font-mono leading-none border uppercase opacity-35 hover:opacity-100 ${
+                    isDarkActive ? "border-white/10" : "border-black/10"
+                  }`}
+                >
+                  ESC
+                </button>
+              </div>
+
+              {/* Autocompletes results and static operations guidelines */}
+              <div className="flex flex-col gap-2 font-mono text-[10px]">
+                
+                {/* Dynamically queries active symbols links if query supplied */}
+                {commandResults.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[7.5px] opacity-35 uppercase block font-bold mb-1 tracking-widest">Matched Assets</span>
+                    {commandResults.map(coin => (
+                      <button
+                        key={coin.id}
+                        onClick={() => handleExecuteCommand(`/open ${coin.symbol}`)}
+                        className={`w-full p-2 rounded text-left flex justify-between items-center ${
+                          isDarkActive ? "hover:bg-white/5" : "hover:bg-black/5"
+                        } cursor-pointer`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#C9A96A] font-bold">{coin.symbol}</span>
+                          <span className="opacity-60">{coin.name}</span>
+                        </div>
+                        <span className="opacity-45 text-[8.5px] uppercase">/open {coin.symbol}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Static navigation actions shortcuts (Raycast style) */}
+                <div className="flex flex-col gap-1 mt-2">
+                  <span className="text-[7.5px] opacity-35 uppercase block font-bold mb-1 tracking-widest">Sovereign OS Command Shortcuts</span>
+                  
+                  {[
+                    { cmd: "/dashboard", desc: "Go to Mission Control dashboard" },
+                    { cmd: "/portfolio", desc: "Go to audited Asset Allocations Ledger" },
+                    { cmd: "/copilot", desc: "Consult Aegis cognitive oracle companion" },
+                    { cmd: "/reflash", desc: "Synchronize L1 market stats pipeline" },
+                    { cmd: "scan <coin>", desc: "E.g., '/scan BTC' to launch deep scan setup" }
+                  ].map((act, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleExecuteCommand(act.cmd)}
+                      className={`w-full p-2 rounded text-left flex justify-between items-center transition-all ${
+                        isDarkActive ? "hover:bg-white/5" : "hover:bg-black/5"
+                      } cursor-pointer`}
+                    >
+                      <span className="font-bold opacity-80 text-current">{act.desc}</span>
+                      <span className={`px-2 py-0.5 rounded text-[8.5px] font-black tracking-wider ${
+                        isDarkActive ? "bg-white/5 text-[#C9A96A]" : "bg-black/5 text-[#9C7B3E]"
+                      }`}>{act.cmd}</span>
+                    </button>
+                  ))}
+                </div>
+
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ================= EXTRA SELECTION PROMPT MODAL PORTED EXACTLY ================= */}
+      <AnimatePresence>
+        {showSelectionModal && selectedModalAsset && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className={`w-full max-w-lg rounded-3xl border p-8 shadow-2xl relative ${
+                isDarkActive 
+                  ? "bg-[#101015] border-white/5 text-[#EDEAE3]" 
+                  : "bg-white border-black/10 text-[#1A1A1F]"
+              }`}
+            >
+              <button 
+                onClick={() => setShowSelectionModal(false)}
+                className={`absolute top-5 right-5 opacity-40 hover:opacity-100 transition-all rounded-full p-2 cursor-pointer ${
+                  isDarkActive ? "hover:bg-white/5" : "hover:bg-black/5"
+                }`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {!showLangSelectionStep ? (
+                <div className="flex flex-col gap-6">
+                  <div>
+                    <span className={`text-[9px] font-mono tracking-[0.25em] uppercase block mb-1.5 ${
+                      isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                    }`}>
+                      Dossier Workspace Action
+                    </span>
+                    <h3 className="text-2xl font-serif font-black tracking-tight mb-2 uppercase">
+                      Initialize {selectedModalAsset.name} ({selectedModalAsset.symbol})
+                    </h3>
+                    <p className="text-xs leading-relaxed opacity-60">
+                       Configure processing pipelines to deploy detailed technical reports or interactive execution centers.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-4 font-sans">
+                    {/* Direct Trade views */}
+                    <button
+                      onClick={() => handleOpenDirectTrade(selectedModalAsset)}
+                      className={`p-5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer group ${
+                        isDarkActive 
+                          ? "bg-white/[0.01] border-white/5 hover:border-[#C9A96A]/45 hover:bg-white/[0.03]" 
+                          : "bg-black/[0.01] border-black/5 hover:border-[#9C7B3E]/45 hover:bg-black/[0.02]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 mb-1.5">
+                        <Sliders className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}`} />
+                        <span className={`font-semibold text-xs uppercase tracking-wider ${
+                          isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                        }`}>
+                          Direct spot Trade hub
+                        </span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-60">
+                         Access interactive real-time price action charts, order input form vectors, and spot execution ledgers immediately.
+                      </p>
+                    </button>
+
+                    {/* deep scan report analysis */}
+                    <button
+                      onClick={() => setShowLangSelectionStep(true)}
+                      className={`p-5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer group ${
+                        isDarkActive 
+                          ? "bg-white/[0.01] border-white/5 hover:border-[#C9A96A]/45 hover:bg-white/[0.03]" 
+                          : "bg-black/[0.01] border-black/5 hover:border-[#9C7B3E]/45 hover:bg-black/[0.02]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 mb-1.5">
+                        <Radio className={`w-4 h-4 text-current animate-pulse`} />
+                        <span className={`font-semibold text-xs uppercase tracking-wider ${
+                          isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                        }`}>
+                          QUANTUM DEEP VECTOR ANALYSIS
+                        </span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-60">
+                         Run multi-tiered predictive AI models, support/resistance vibrational zones, probability win indices, and risk matrix briefs.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6 font-sans">
+                  <div>
+                    <span className={`text-[9px] font-mono tracking-[0.25em] uppercase block mb-1.5 ${
+                      isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                    }`}>
+                      Pipeline Compilation Config
+                    </span>
+                    <h3 className="text-2xl font-serif font-black tracking-tight mb-2 uppercase text-current">
+                      Select Translation Core
+                    </h3>
+                    <p className="text-xs leading-relaxed opacity-60">
+                       Determine the language synthesis vector to compile the deep intelligence report and analytical graphs.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* English */}
+                    <div
+                      onClick={() => setSelectedModalLang("english")}
+                      className={`p-5 rounded-2xl border text-center transition-all cursor-pointer select-none ${
+                        selectedModalLang === "english" 
+                          ? (isDarkActive ? "bg-[#C9A96A]/15 border-[#C9A96A] text-[#C9A96A]" : "bg-[#9C7B3E]/10 border-[#9C7B3E] text-[#9C7B3E]")
+                          : (isDarkActive ? "bg-white/5 border-transparent opacity-60 hover:opacity-100" : "bg-black/5 border-transparent opacity-60 hover:opacity-100")
+                      }`}
+                    >
+                      <span className="block font-bold text-xs uppercase">English Core</span>
+                      <span className="block text-[8px] opacity-40 uppercase font-mono tracking-wider mt-1.5">Standard English brief</span>
+                    </div>
+
+                    {/* Hinglish */}
+                    <div
+                      onClick={() => setSelectedModalLang("hinglish")}
+                      className={`p-5 rounded-2xl border text-center transition-all cursor-pointer select-none ${
+                        selectedModalLang === "hinglish" 
+                          ? (isDarkActive ? "bg-[#C9A96A]/15 border-[#C9A96A] text-[#C9A96A]" : "bg-[#9C7B3E]/10 border-[#9C7B3E] text-[#9C7B3E]")
+                          : (isDarkActive ? "bg-white/5 border-transparent opacity-60 hover:opacity-100" : "bg-black/5 border-transparent opacity-60 hover:opacity-100")
+                      }`}
+                    >
+                      <span className="block font-bold text-xs uppercase">Hinglish Core</span>
+                      <span className="block text-[8px] opacity-40 uppercase font-mono tracking-wider mt-1.5">Hindi-English adapter</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 items-center justify-end mt-4">
+                    <button
+                      onClick={() => setShowLangSelectionStep(false)}
+                      className={`flex-1 py-3 border rounded-xl text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all ${
+                        isDarkActive 
+                          ? "border-white/10 bg-black/25 text-[#EDEAE3] hover:bg-black/40" 
+                          : "border-black/10 bg-white text-[#1A1A1F] hover:bg-black/[0.01]"
+                      }`}
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => handleLaunchAnalysis(selectedModalAsset, selectedModalLang)}
+                      className={`flex-2 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer ${
+                        isDarkActive 
+                          ? "bg-[#C9A96A] hover:bg-[#B08A4E] text-black shadow-[#C9A96A]/10" 
+                          : "bg-[#9C7B3E] hover:bg-[#7E602A] text-white shadow-[#9C7B3E]/10"
+                      }`}
+                    >
+                      COMPILE BRIEFING
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

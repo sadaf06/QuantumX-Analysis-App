@@ -898,8 +898,30 @@ export default app;
 
 // Dynamic port listener lookup to satisfy both Vercel serverless specifications
 // and the local AI Studio development container proxy.
-const startLocalServer = () => {
+const startLocalServer = async () => {
   if (!process.env.VERCEL) {
+    try {
+      console.log("Integrating Vite dev middleware for AI Studio environment...");
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.warn("Could not load Vite dev middleware, attempting static dist hosting...", e);
+      try {
+        const path = await import("path");
+        const distPath = path.join(process.cwd(), 'dist');
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+      } catch (e2) {
+        console.error("Failed to set up static hosting fallback:", e2);
+      }
+    }
+
     const listenMethod = app["listen"];
     if (typeof listenMethod === "function") {
       listenMethod.call(app, 3000, "0.0.0.0", () => {

@@ -10,7 +10,9 @@ import {
   ShieldCheck,
   RefreshCw,
   Zap,
-  Globe
+  Globe,
+  Lock,
+  Compass
 } from 'lucide-react';
 import { ChatMessage } from '../types';
 
@@ -23,7 +25,7 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
     {
       id: 'init',
       role: 'assistant',
-      content: "Greetings. I am **The Oracle**, your institutional-grade trading cognitive partner. I specialize in identifying high-probability market shifts, geometric price symmetries, and mathematical trend exhaustions.\n\nHow can I refine your market strategy today?",
+      content: "Greetings. I am **The Aegis Oracle**, your institutional-grade trading cognitive partner. I specialize in identifying high-probability market shifts, geometric price symmetries, and mathematical trend exhaustions.\n\nHow can I refine your market strategy today?",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -82,142 +84,158 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
   };
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 h-[calc(100vh-180px)] md:h-[calc(100vh-250px)] min-h-[500px]">
-      {/* Sidebar Info - Hidden on mobile for space, visible on desktop */}
+    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 h-[calc(100vh-220px)] min-h-[500px] animate-in fade-in duration-300">
+      
+      {/* SIDEBAR: SYSTEM VERIFICATIONS */}
       <div className="hidden lg:flex lg:col-span-3 flex-col gap-4">
-        <div className={`p-6 rounded-2xl border ${isDarkActive ? "bg-[#080D16] border-white/10" : "bg-white border-black/10 shadow-sm"}`}>
+        <div className={`p-5 rounded-2xl border ${isDarkActive ? "bg-[#101017] border-white/5" : "bg-white border-black/5 shadow-sm"}`}>
           <div className="flex items-center gap-2 mb-4">
-            <Brain className="w-5 h-5 text-[#00D1FF]" />
-            <h2 className="text-xs font-black uppercase tracking-widest text-[#00D1FF]">Cognitive Specs</h2>
+            <Brain className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}`} />
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-80">Cognitive Specs</span>
           </div>
-          <div className="flex flex-col gap-3">
+          
+          <div className="flex flex-col gap-2.5 font-mono">
              {[
-               { icon: <Globe className="w-3 h-3" />, label: "Dynamic Multi-Lingual", status: "Active" },
-               { icon: <TrendingUp className="w-3 h-3" />, label: "Institutional Intel", status: "Enabled" },
-               { icon: <ShieldCheck className="w-3 h-3" />, label: "Risk Calibration", status: "Nominal" },
-               { icon: <Zap className="w-3 h-3" />, label: "Low-Latency Core", status: "Online" }
+               { icon: <Globe className="w-3.5 h-3.5 text-[#5EEAD4]" />, label: "Dual-lingual", status: "Enabled" },
+               { icon: <TrendingUp className="w-3.5 h-3.5 text-[#C9A96A]" />, label: "Quant Sizing", status: "Active" },
+               { icon: <ShieldCheck className="w-3.5 h-3.5 text-[#5EEAD4]" />, label: "Volatility", status: "Calibrated" },
+               { icon: <Zap className="w-3.5 h-3.5 text-[#E2675A]" />, label: "Sovereign Core", status: "Online" }
              ].map((item, idx) => (
-               <div key={idx} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/5">
-                 <div className="flex items-center gap-2 opacity-60">
+               <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-black/10 dark:bg-white/[0.01] border border-current opacity-95">
+                 <div className="flex items-center gap-2 opacity-65 text-[10px] font-bold uppercase">
                    {item.icon}
-                   <span className="text-[10px] font-bold uppercase">{item.label}</span>
+                   <span>{item.label}</span>
                  </div>
-                 <span className="text-[8px] font-black uppercase text-[#00FF85]">{item.status}</span>
+                 <span className="text-[8px] font-black uppercase text-[#5EEAD4]">{item.status}</span>
                </div>
              ))}
           </div>
-          <div className="mt-6 p-4 bg-[#FFB800]/5 rounded-xl border border-[#FFB800]/20">
-             <div className="flex items-center gap-2 mb-2">
-               <Sparkles className="w-3 h-3 text-[#FFB800]" />
-               <span className="text-[10px] font-black uppercase text-[#FFB800]">Heuristic Learning</span>
+          
+          <div className="mt-5 p-4 bg-black/10 rounded-xl border border-dashed text-[10px]" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+             <div className="flex items-center gap-2 mb-2 text-[#C9A96A]">
+               <Sparkles className="w-3 h-3 text-current" />
+               <span className="font-bold uppercase tracking-wider">Hinglish Translation</span>
              </div>
-             <p className="text-[10px] opacity-60 leading-relaxed italic">
-               "Teach me your techniques (Hinglish/English). I will integrate your logic into my session-memory and apply it to market data."
+             <p className="opacity-60 leading-relaxed italic">
+               You can prompt me in custom English, Hindi, or Hinglish. I will automatically adapt structural recommendations contextually.
              </p>
           </div>
         </div>
 
-        <div className={`p-6 rounded-2xl border mt-auto ${isDarkActive ? "bg-[#080D16] border-white/10" : "bg-white border-black/10 shadow-sm"}`}>
-           <span className="text-[10px] font-black uppercase opacity-35 block mb-2">Oracle Sync</span>
+        <div className={`p-5 rounded-2xl border ${isDarkActive ? "bg-[#101017] border-white/5" : "bg-white border-black/5 shadow-sm"}`}>
+           <span className="text-[10px] font-mono font-bold uppercase opacity-35 block mb-1">Oracle Handshake</span>
            <div className="flex items-center gap-2">
-             <div className="w-2 h-2 rounded-full bg-[#00FF85] animate-pulse" />
-             <span className="text-[10px] font-mono opacity-60 font-bold uppercase tracking-widest">Protocol Verified</span>
+             <div className="w-2 h-2 rounded-full bg-[#5EEAD4] animate-pulse" />
+             <span className="text-[9px] font-mono opacity-60 font-bold uppercase tracking-widest">Protocol Sync verified</span>
            </div>
         </div>
       </div>
 
-      {/* Main Chat Interface */}
-      <div className={`flex-1 lg:col-span-9 rounded-2xl border flex flex-col overflow-hidden ${isDarkActive ? "bg-[#080E16] border-white/10" : "bg-white border-black/10 shadow-xl"}`}>
-        {/* Chat Header */}
-        <div className={`px-4 md:px-6 py-3 md:py-4 border-b flex items-center justify-between ${isDarkActive ? "bg-white/5 border-white/10" : "bg-black/[0.02] border-black/10"}`}>
+      {/* MAIN CHAT CONSOLE */}
+      <div className={`flex-1 lg:col-span-9 rounded-2xl border flex flex-col overflow-hidden ${
+        isDarkActive ? "bg-[#101017] border-white/5 shadow-2xl" : "bg-white border-black/10 shadow-lg"
+      }`}>
+        {/* Header bar */}
+        <div className={`px-4 md:px-6 py-4 border-b flex items-center justify-between ${
+          isDarkActive ? "bg-white/[0.02] border-white/5" : "bg-black/[0.01] border-black/10"
+        }`}>
           <div className="flex items-center gap-3">
-             <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#00D1FF] to-[#0057FF] flex items-center justify-center shadow-lg">
-                <Bot className="w-5 h-5 md:w-6 md:h-6 text-black" />
+             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg leading-none shadow-sm ${
+               isDarkActive ? "bg-[#1A1A22] text-[#C9A96A]" : "bg-[#F0EBE0] text-[#9C7B3E]"
+             }`}>
+                Φ
              </div>
              <div>
-                <h2 className="text-xs md:text-sm font-black uppercase tracking-widest">The Oracle</h2>
-                <span className="text-[8px] md:text-[10px] opacity-40 font-mono font-bold uppercase">Multi-Lingual Market Core</span>
+                <h2 className="text-xs md:text-sm font-serif font-semibold tracking-tight">The Aegis AI Oracle</h2>
+                <span className="text-[9px] md:text-[10px] opacity-40 font-mono font-bold uppercase tracking-wider leading-none">Universal sovereign intelligence core</span>
              </div>
           </div>
-          <div className="px-2 md:px-3 py-1 rounded-full bg-[#00D1FF]/10 text-[#00D1FF] border border-[#00D1FF]/20 text-[8px] md:text-[10px] font-black uppercase tracking-widest">
-            Institutional
+          <div className="px-3 py-1 rounded-lg bg-black/10 dark:bg-white/5 border border-current text-[9px] font-mono font-bold uppercase tracking-wider opacity-65">
+            CLASS I SECURITY SYSTEM
           </div>
         </div>
 
         {/* Messages */}
         <div 
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 md:gap-6 no-scrollbar"
+          className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 md:gap-5 no-scrollbar"
         >
           {messages.map((msg) => (
             <div key={msg.id} className={`flex items-start gap-3 md:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 shadow-md ${
+              <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
                 msg.role === 'assistant' 
-                  ? "bg-[#00D1FF] text-black" 
-                  : isDarkActive ? "bg-white/10 text-white" : "bg-black/10 text-black"
+                  ? "bg-black/10 text-[#C9A96A]" 
+                  : isDarkActive ? "bg-white/5 text-[#EDEAE3]" : "bg-black/5 text-[#1A1A1F]"
               }`}>
-                {msg.role === 'assistant' ? <Bot className="w-4 h-4 md:w-5 md:h-5" /> : <User className="w-4 h-4 md:w-5 md:h-5" />}
+                {msg.role === 'assistant' ? <Bot className="w-4 h-4 md:w-5 md:h-5 text-current" /> : <User className="w-4 h-4 md:w-5 md:h-5" />}
               </div>
               
               <div className={`flex flex-col gap-1 max-w-[85%] md:max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`px-4 py-2.5 md:px-5 md:py-3.5 rounded-2xl text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${
+                <div className={`px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-xs leading-relaxed whitespace-pre-wrap shadow-sm ${
                   msg.role === 'user'
-                    ? "bg-[#00D1FF] text-black font-semibold rounded-tr-none"
+                    ? (isDarkActive ? "bg-[#C9A96A] text-black font-semibold rounded-tr-none" : "bg-[#9C7B3E] text-white font-semibold rounded-tr-none")
                     : isDarkActive 
-                      ? "bg-[#111A29] text-[#E2E8F0] border border-white/5 rounded-tl-none" 
-                      : "bg-[#F8FAFC] text-[#0F172A] border border-black/5 rounded-tl-none"
+                      ? "bg-[#1A1A22] text-[#EDEAE3] border border-white/5 rounded-tl-none" 
+                      : "bg-[#F7F5F0]/50 text-[#1A1A1F] border border-black/5 rounded-tl-none"
                 }`}>
                   {msg.content}
                 </div>
-                <span className="text-[9px] md:text-[10px] font-mono opacity-30 px-1">{msg.timestamp}</span>
+                <span className="text-[8px] font-mono opacity-30 mt-0.5 px-1">{msg.timestamp}</span>
               </div>
             </div>
           ))}
           {isLoading && (
             <div className="flex items-start gap-3 animate-pulse">
-               <div className="w-7 h-7 rounded-lg bg-[#00D1FF]/20 flex items-center justify-center">
-                  <RefreshCw className="w-4 h-4 text-[#00D1FF] animate-spin" />
+               <div className="w-7 h-7 rounded-lg bg-black/5 flex items-center justify-center">
+                  <RefreshCw className="w-4 h-4 text-[#C9A96A] animate-spin" />
                </div>
-               <div className={`px-4 py-2 rounded-2xl text-[11px] font-mono opacity-50 ${isDarkActive ? "bg-[#111A29]" : "bg-[#F8FAFC]"}`}>
-                  Analyzing high-dimensional cycles...
+               <div className={`px-3 py-1.5 rounded-xl text-[10px] font-mono opacity-50 ${isDarkActive ? "bg-white/5" : "bg-black/5"}`}>
+                  Compiling sovereign cycles ledger...
                </div>
             </div>
           )}
         </div>
 
-        {/* Chat Input */}
-        <div className={`p-4 md:p-6 border-t ${isDarkActive ? "border-white/10 bg-[#0A101A]" : "border-black/5 bg-[#F8FAFC]"}`}>
-          <div className="flex gap-2 md:gap-3 relative max-w-4xl mx-auto">
+        {/* Chat input form */}
+        <div className={`p-4 md:p-5 border-t ${isDarkActive ? "border-white/5 bg-[#14141A]" : "border-black/5 bg-[#F8FAFC]"}`}>
+          <div className="flex gap-2 relative max-w-4xl mx-auto">
             <input 
               type="text" 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask anything (English/Hindi/Hinglish)..."
-              className={`flex-1 h-12 md:h-14 pl-4 md:pl-6 pr-12 md:pr-14 rounded-xl md:rounded-2xl border text-[13px] md:text-sm transition-all focus:ring-2 focus:ring-[#00D1FF]/30 outline-none ${
+              placeholder="Ask the Oracle (e.g., 'Analyze BTC macro support', 'hinglish query')..."
+              className={`flex-1 h-12 pl-4 pr-14 rounded-xl border text-xs transition-all outline-none ${
                 isDarkActive 
-                  ? "bg-black text-white border-white/10 focus:border-[#00D1FF]" 
-                  : "bg-white text-black border-black/10 focus:border-[#00D1FF]"
+                  ? "bg-black text-white border-white/10 focus:border-[#C9A96A]/60" 
+                  : "bg-white text-black border-black/10 focus:border-[#9C7B3E]/60"
               }`}
             />
             <button 
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="absolute right-1.5 top-1.5 h-9 w-9 md:h-11 md:w-11 bg-[#00D1FF] text-black rounded-lg md:rounded-xl flex items-center justify-center transition-all hover:bg-[#00B2D8] disabled:opacity-40 disabled:scale-95 shadow-lg active:scale-95"
+              className={`absolute right-1.5 top-1.5 h-9 px-4 rounded-lg flex items-center justify-center transition-all disabled:opacity-40 select-none shadow cursor-pointer ${
+                isDarkActive 
+                  ? "bg-[#C9A96A] text-black hover:bg-[#B08A4E]" 
+                  : "bg-[#9C7B3E] text-white hover:bg-[#7E602A]"
+              }`}
             >
-              <Send className="w-4 h-4 md:w-5 md:h-5" />
+              <Send className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex justify-center gap-4 md:gap-6 mt-3 md:mt-4">
-            <span className="text-[8px] md:text-[9px] font-black uppercase opacity-20 tracking-widest flex items-center gap-1">
-              <Globe className="w-2.5 h-2.5" /> All Languages
+          
+          <div className="flex justify-center gap-4 mt-3">
+            <span className="text-[8px] font-mono font-bold uppercase opacity-20 tracking-wider flex items-center gap-1">
+              <Globe className="w-3 h-3" /> Multi-Lingual Core
             </span>
-            <span className="text-[8px] md:text-[9px] font-black uppercase opacity-20 tracking-widest flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5" /> High AI Intelligence
+            <span className="text-[8px] font-mono font-bold uppercase opacity-20 tracking-wider flex items-center gap-1">
+              <Compass className="w-3 h-3" /> Geometric Analysis
             </span>
           </div>
         </div>
+
       </div>
+
     </div>
   );
 };

@@ -13,7 +13,19 @@ import {
   ZapOff,
   Scan,
   RefreshCw,
-  History
+  History,
+  TrendingUp as TrendUp,
+  Maximize2,
+  ChevronDown,
+  ChevronRight as ChevronRightIcon,
+  Cpu,
+  CornerDownRight,
+  BookOpen,
+  PieChart,
+  Brain,
+  Sliders,
+  DollarSign,
+  Briefcase
 } from "lucide-react";
 import { CryptoAsset, CoinIntelligenceReport, ChatMessage, UserProfile, Trade } from "../types";
 import { PaperTrading } from "./PaperTrading";
@@ -56,392 +68,581 @@ export const CoinDetail: React.FC<Props> = ({
   userProfile,
   onTrade
 }) => {
-  const [activeTab, setActiveTab] = useState<"QUICK_TRADE" | "DEEP_SCAN" | "HISTORY">("QUICK_TRADE");
   const asset = activeAsset;
   const isUp = asset.changePercent24Hr >= 0;
 
-  const SectionHeader = ({ icon: Icon, title, color = "text-[#00D1FF]" }: any) => (
-    <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
-      <Icon className={`w-5 h-5 ${color}`} />
-      <h2 className="text-sm font-black uppercase tracking-[0.2em]">{title}</h2>
-    </div>
-  );
+  // Collapse/Expand state management for bento panels
+  const [collapsed, setCollapsed] = useState<{ [key: string]: boolean }>({
+    signal: false,
+    coordinates: false,
+    geometry: false,
+    projections: false,
+    psychology: false,
+    geopolitical: false,
+    emotions: true,
+    risk: true,
+    news: true,
+    chat: false
+  });
+
+  const toggleCollapse = (key: string) => {
+    setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Section Header with Collapse support
+  const CollapseHeader = ({ title, icon: Icon, sectionKey, color }: any) => {
+    const isCollapsed = collapsed[sectionKey];
+    const defaultColor = color || (isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]");
+    
+    return (
+      <div 
+        onClick={() => toggleCollapse(sectionKey)}
+        className={`flex items-center justify-between border-b pb-3 mb-3 cursor-pointer select-none group transition-all ${
+          isDarkActive ? "border-white/5 hover:border-white/10" : "border-black/5 hover:border-black/10"
+        }`}
+      >
+        <div className="flex items-center gap-2.5">
+          <Icon className={`w-4 h-4 ${defaultColor}`} />
+          <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.2em]">{title}</h2>
+        </div>
+        <div className="flex items-center gap-1 opacity-55 group-hover:opacity-100 transition-all">
+          <span className="text-[8px] font-mono uppercase tracking-wider">{isCollapsed ? "expand" : "collapse"}</span>
+          {isCollapsed ? (
+            <ChevronRightIcon className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5" />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const assetTrades = userProfile.history.filter(t => t.assetId === asset.id);
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
       
-      {/* 1. OVERVIEW PLATE */}
-      <div className={`p-6 rounded-2xl border transition-all relative overflow-hidden ${
-        isDarkActive ? "bg-[#080F1B] border-white/10 shadow-2xl" : "bg-white border-black/10 shadow-lg"
-      }`}>
-        <div className="absolute top-0 right-0 p-3 opacity-10">
-          <Atom className="w-32 h-32 rotate-12" />
+      {/* 1. ASSET PRICE HEADER */}
+      <div className={`p-6 md:p-8 rounded-2xl border transition-all ${
+        isDarkActive 
+          ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-xl" 
+          : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+      } relative overflow-hidden`}>
+        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none select-none">
+          <Atom className="w-40 h-40 rotate-12 text-[#C9A96A]" />
         </div>
         
-        <div className="flex flex-col md:flex-row justify-between gap-6 relative z-10">
-          <div className="flex items-center gap-5">
-             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#00D1FF] to-[#0057FF] flex items-center justify-center font-black text-2xl text-black">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="flex items-center gap-4 md:gap-5">
+             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-lg leading-none shadow-sm ${
+               isDarkActive ? "bg-[#1A1A22] text-[#C9A96A]" : "bg-[#F0EBE0] text-[#9C7B3E]"
+             }`}>
                 {asset.symbol.slice(0, 3)}
              </div>
              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-3xl font-black tracking-tight">{asset.name}</h1>
-                  <span className="text-sm uppercase font-extrabold tracking-widest bg-[#00D1FF]/10 px-3 py-1 rounded text-[#00D1FF] border border-[#00D1FF]/20">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-2xl md:text-3xl font-serif font-semibold tracking-tight">{asset.name}</h1>
+                  <span className={`text-[9px] uppercase font-mono font-bold tracking-wider px-2.5 py-0.5 rounded-lg border ${
+                    isDarkActive 
+                      ? "bg-[#C9A96A]/10 text-[#C9A96A] border-[#C9A96A]/20" 
+                      : "bg-[#9C7B3E]/10 text-[#9C7B3E] border-[#9C7B3E]/20"
+                  }`}>
                     {asset.symbol}
                   </span>
-                  <span className="text-xs font-mono px-2 py-1 bg-white/5 rounded opacity-50">
+                  <span className="text-[9px] font-mono px-2 py-0.5 bg-black/15 dark:bg-white/5 rounded-md opacity-60 font-bold uppercase">
                     RANK #{asset.rank}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 mt-2">
-                   <span className="text-3xl font-mono font-black text-[#00FF85]">
+                <div className="flex items-center gap-4 mt-1.5 font-mono">
+                   <span className={`text-xl md:text-2xl font-bold tracking-tight ${isDarkActive ? "text-[#EDEAE3]" : "text-[#1A1A1F]"}`}>
                      ${asset.priceUsd.toLocaleString(undefined, { 
                        minimumFractionDigits: asset.priceUsd > 1 
                          ? (asset.priceUsd > 1000 ? 2 : 2) 
                          : 6 
                      })}
                    </span>
-                   <span className={`px-2 py-1 rounded text-sm font-bold flex items-center gap-1 ${
-                     isUp ? "bg-[#00FF85]/10 text-[#00FF85]" : "bg-[#FF3B69]/10 text-[#FF3B69]"
+                   <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 ${
+                     isUp ? "bg-[#5EEAD4]/10 text-[#5EEAD4]" : "bg-[#E2675A]/10 text-[#E2675A]"
                    }`}>
-                      {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                      {isUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                       {isUp ? "+" : ""}{asset.changePercent24Hr.toFixed(2)}%
                    </span>
                 </div>
              </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 text-xs font-mono self-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-4 text-[10px] font-mono border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-6 border-current opacity-80">
              <div className="flex flex-col">
-                <span className="opacity-40 font-bold uppercase tracking-tighter">MARKET CAP</span>
-                <span className="font-black text-[#00D1FF]">${(asset.marketCapUsd / 1e9).toFixed(2)}B</span>
+                <span className="opacity-40 font-bold tracking-wider uppercase text-[8px]">MARKET CAPITAL</span>
+                <span className={`font-bold mt-0.5 ${isDarkActive ? "text-[#EDEAE3]" : "text-[#1A1A1F]"}`}>
+                  ${(asset.marketCapUsd / 1e9).toFixed(2)}B
+                </span>
              </div>
              <div className="flex flex-col">
-                <span className="opacity-40 font-bold uppercase tracking-tighter">24H VOLUME</span>
-                <span className="font-black text-[#00D1FF]">${(asset.volumeUsd24Hr / 1e6).toFixed(1)}M</span>
+                <span className="opacity-40 font-bold tracking-wider uppercase text-[8px]">24H TRADED VOL</span>
+                <span className={`font-bold mt-0.5 ${isDarkActive ? "text-[#EDEAE3]" : "text-[#1A1A1F]"}`}>
+                  ${(asset.volumeUsd24Hr / 1e6).toFixed(1)}M
+                </span>
              </div>
              <div className="flex flex-col">
-                <span className="opacity-40 font-bold uppercase tracking-tighter">SUPPLY</span>
-                <span className="font-black text-[#00D1FF]">{(asset.supply / 1e6).toFixed(1)}M</span>
+                <span className="opacity-40 font-bold tracking-wider uppercase text-[8px]">CIRC COINS</span>
+                <span className={`font-bold mt-0.5 ${isDarkActive ? "text-[#EDEAE3]" : "text-[#1A1A1F]"}`}>
+                  {(asset.supply / 1e6).toFixed(1)}M
+                </span>
              </div>
              <div className="flex flex-col">
-                <span className="opacity-40 font-bold uppercase tracking-tighter">MAX LIMIT</span>
-                <span className="font-black text-[#00D1FF]">{asset.maxSupply ? `${(asset.maxSupply / 1e6).toFixed(1)}M` : "∞"}</span>
+                <span className="opacity-40 font-bold tracking-wider uppercase text-[8px]">LIMIT CAP</span>
+                <span className={`font-bold mt-0.5 ${isDarkActive ? "text-[#EDEAE3]" : "text-[#1A1A1F]"}`}>
+                  {asset.maxSupply ? `${(asset.maxSupply / 1e6).toFixed(1)}M` : "UNSET"}
+                </span>
              </div>
           </div>
         </div>
       </div>
 
-      {/* TABS MENU */}
-      <div className={`p-1 flex items-center gap-1 rounded-xl border ${isDarkActive ? "bg-[#080D16] border-white/10" : "bg-white border-black/10"}`}>
-         <button onClick={() => setActiveTab("QUICK_TRADE")} className={`flex-1 py-3 text-xs font-black tracking-widest uppercase transition-all rounded-lg ${activeTab === "QUICK_TRADE" ? (isDarkActive ? "bg-white/10 text-white" : "bg-black/10 text-black") : "opacity-50 hover:bg-white/5"}`}>
-            QUICK TRADE
-         </button>
-         <button onClick={() => setActiveTab("DEEP_SCAN")} className={`flex-1 py-3 text-xs font-black tracking-widest uppercase transition-all rounded-lg flex items-center justify-center gap-2 ${activeTab === "DEEP_SCAN" ? "bg-[#00D1FF]/10 text-[#00D1FF]" : "opacity-50 hover:bg-white/5"}`}>
-            {isAnalyzing && activeTab !== "DEEP_SCAN" && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-            DEEP SCAN 
-         </button>
-         <button onClick={() => setActiveTab("HISTORY")} className={`flex-1 py-3 text-xs font-black tracking-widest uppercase transition-all rounded-lg ${activeTab === "HISTORY" ? (isDarkActive ? "bg-white/10 text-white" : "bg-black/10 text-black") : "opacity-50 hover:bg-white/5"}`}>
-            TRADE HISTORY
-         </button>
-      </div>
-
-      {/* QUICK TRADE TAB */}
-      {activeTab === "QUICK_TRADE" && (
-        <div className="flex flex-col gap-6">
-          <div className={`p-6 rounded-2xl border ${isDarkActive ? "bg-[#080D16] border-white/5" : "bg-white border-black/5"}`}>
-            <SectionHeader icon={Activity} title="PRICE ACTION HORIZON" />
+      {/* 2. CORE INTELLIGENCE CENTER DESK */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-start">
+        
+        {/* =============== LEFT HAND WORKSPACE (65% width) =============== */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          
+          {/* A. Live Chart Terminal */}
+          <div className={`p-6 rounded-2xl border ${
+            isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-lg" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+          }`}>
+            <div className="flex items-center justify-between border-b pb-4 mb-4" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}>
+              <div className="flex items-center gap-2.5">
+                <Activity className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}`} />
+                <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em]">Real-Time Price action horizon</h2>
+              </div>
+              <div className="flex items-center gap-1.5 opacity-40 font-mono text-[9px] uppercase font-bold">
+                <span className="w-1.5 h-1.5 bg-[#5EEAD4] rounded-full animate-ping"></span>
+                LIVE CHART CONNECTED
+              </div>
+            </div>
+            
             <CoinChart asset={asset} isDarkActive={isDarkActive} />
           </div>
 
-          <PaperTrading 
-            asset={asset}
-            profile={userProfile}
-            onTrade={onTrade}
-            isDarkActive={isDarkActive}
-          />
-        </div>
-      )}
+          {/* B. Paper Order Entry Form & Execution Engine */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+            
+            {/* The Buy/Sell Terminal Form */}
+            <div className="h-full flex flex-col">
+              <PaperTrading 
+                asset={asset}
+                profile={userProfile}
+                onTrade={onTrade}
+                isDarkActive={isDarkActive}
+              />
+            </div>
 
-      {/* DEEP SCAN TAB */}
-      {activeTab === "DEEP_SCAN" && (
-        <div className="flex flex-col gap-6">
-          {!report ? (
-             <div className={`p-12 rounded-2xl border flex flex-col items-center justify-center gap-6 text-center ${isDarkActive ? "bg-[#080D16] border-white/5" : "bg-white border-black/5"}`}>
-                <div className="w-24 h-24 rounded-full bg-[#00D1FF]/10 flex items-center justify-center">
-                  <Scan className="w-12 h-12 text-[#00D1FF]" />
+            {/* The Integrated Local Spot Execution Ledger (NO TABS!) */}
+            <div className={`p-6 rounded-2xl border flex flex-col justify-between ${
+              isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+            }`}>
+              <div>
+                <div className="flex items-center justify-between border-b pb-3 mb-3" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}>
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 opacity-70" />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Coin Execution Ledger</span>
+                  </div>
+                  <span className="text-[8px] font-mono bg-black/10 dark:bg-white/5 py-0.5 px-2 rounded font-bold">{assetTrades.length} EXECUTED</span>
                 </div>
-                <div className="max-w-md">
-                  <h3 className="text-xl font-black tracking-widest text-[#00D1FF] mb-2 uppercase">Quantum Core Idle</h3>
-                  <p className="opacity-60 text-sm leading-relaxed">
-                    Initiate the Aegis Quant Engine to execute a deep forensic scan of {asset.name}. This will extract hidden structural math, mass psychological trapping zones, and absolute execution coordinates.
-                  </p>
-                </div>
-                <button 
-                  onClick={onDeepScan}
-                  disabled={isAnalyzing}
-                  className="mt-4 px-8 py-4 bg-[#00D1FF] hover:bg-[#00B4DB] text-black font-black uppercase tracking-widest text-sm rounded-xl transition-all shadow-[0_0_20px_rgba(0,209,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-                >
-                  {isAnalyzing ? (
-                    <><RefreshCw className="w-5 h-5 animate-spin" /> SYNTHESIZING MATRIX</>
+
+                <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                  {assetTrades.length === 0 ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-center opacity-30 gap-1.5 font-mono">
+                      <Briefcase className="w-6 h-6" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">No active spot records</span>
+                      <p className="text-[8px] leading-tight">Execute a trade on the order desk to populate.</p>
+                    </div>
                   ) : (
-                    <><Zap className="w-5 h-5" /> INITIATE DEEP SCAN</>
+                    assetTrades.sort((a,b) => b.timestamp - a.timestamp).slice(0, 10).map((trade) => (
+                      <div key={trade.id} className={`flex items-center justify-between p-2.5 rounded-xl border text-[10px] font-mono ${
+                        isDarkActive 
+                          ? "bg-black/20 border-white/5 hover:bg-white/[0.02]" 
+                          : "bg-black/[0.01] border-black/5 hover:bg-black/[0.02]"
+                      } transition-all`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-1 rounded text-[9px] font-black ${
+                            trade.type === "BUY" ? "bg-[#5EEAD4]/10 text-[#5EEAD4]" : "bg-[#E2675A]/10 text-[#E2675A]"
+                          }`}>
+                            {trade.type}
+                          </span>
+                          <div>
+                            <span className="font-bold block tracking-tight">{trade.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} UNITS</span>
+                            <span className="text-[7px] opacity-35 leading-none block">{new Date(trade.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold block text-sm leading-none">${trade.priceAtTrade.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      </div>
+                    ))
                   )}
-                </button>
-             </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t mt-3 border-dashed border-current opacity-30 text-[8px] font-mono uppercase tracking-widest text-center" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}>
+                Audit trial synced under secure ledgers
+              </div>
+            </div>
+
+          </div>
+
+          {/* C. Extended Quantum Projections Framework (Visible if report exists) */}
+          {report && (
+            <div className="flex flex-col gap-6 mt-2">
+              
+              {/* Multidimensional projections banner */}
+              <QuantumProjections 
+                currentPrice={asset.priceUsd}
+                isDarkActive={isDarkActive}
+                symbol={asset.symbol}
+              />
+              
+              {/* Multi tier short/mid/long execution zones */}
+              {report.signal?.plans && (
+                <ExecutionPlansPanel 
+                  plans={report.signal.plans} 
+                  isDarkActive={isDarkActive} 
+                />
+              )}
+
+              {/* 5-Year Macro Projections */}
+              {report.signal?.fiveYearForecast && (
+                <FiveYearForecastPanel 
+                  forecast={report.signal.fiveYearForecast} 
+                  isDarkActive={isDarkActive} 
+                />
+              )}
+
+            </div>
+          )}
+
+        </div>
+
+        {/* =============== RIGHT HAND WORKSPACE / TECHNICAL CONTROLS (35% width) =============== */}
+        <div className="lg:col-span-4 flex flex-col gap-6">
+          
+          {/* IF REPORT IS NULL: SHOW COGNITIVE SCAN STANDBY COCKPIT */}
+          {!report ? (
+            <div className={`p-8 rounded-2xl border flex flex-col items-center justify-center gap-6 text-center ${
+              isDarkActive 
+                ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-xl" 
+                : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+            }`}>
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                isDarkActive ? "bg-[#C9A96A]/10 text-[#C9A96A]" : "bg-[#9C7B3E]/10 text-[#9C7B3E]"
+              }`}>
+                <Scan className="w-7 h-7" />
+              </div>
+              <div className="max-w-md">
+                <h3 className="text-lg font-serif font-bold tracking-tight mb-2">Aegis Specialist Standby</h3>
+                <p className="opacity-60 text-xs leading-relaxed font-sans">
+                  The mathematical cycles engine for {asset.name} is in idle standby mode. Inject core scanning telemetry to map local squaring dates, harmonics convergence nodes, and directionality indicators.
+                </p>
+              </div>
+              
+              <button 
+                onClick={onDeepScan}
+                disabled={isAnalyzing}
+                className={`w-full py-4 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 cursor-pointer ${
+                  isDarkActive 
+                    ? "bg-[#C9A96A] hover:bg-[#B08A4E] text-black shadow-[#C9A96A]/15" 
+                    : "bg-[#9C7B3E] hover:bg-[#7E602A] text-white shadow-[#9C7B3E]/15"
+                }`}
+              >
+                {isAnalyzing ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> RUNNING QUANT MODEL...</>
+                ) : (
+                  <><Zap className="w-4 h-4 animate-pulse" /> ACTIVATE SPECIAL SCAN</>
+                )}
+              </button>
+            </div>
           ) : (
-            <>
-              {/* === THE DEEP SCAN REPORTS BLOCKS === */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            /* OTHERWISE: RENDER UNIFIED COLLAPSIBLE HUB PANELS */
+            <div className="flex flex-col gap-4">
+              
+              {/* THE SOVEREIGN DIRECTIONAL SIGNAL */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-lg" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+              }`}>
+                <CollapseHeader title="THE DIRECTIONAL CORE" icon={Zap} sectionKey="signal" />
                 
-                {/* 2. PRICE ANALYSIS */}
-                <section className={`p-6 rounded-2xl border ${isDarkActive ? "bg-[#080D16] border-white/5" : "bg-white border-black/5"}`}>
-                  <SectionHeader icon={Activity} title="THE TIME & PRICE COORDINATES" />
-                  <div className="flex flex-col gap-4 text-sm">
-                    <div className="flex flex-col bg-white/5 p-3 rounded-lg border border-white/10">
-                      <span className="font-bold opacity-50 uppercase tracking-wider text-[10px] mb-2">Quantum Vector Alignment</span>
-                      <p className="font-mono text-sm leading-relaxed">{report.timeAndPrice?.quantumVectorAlignment}</p>
+                {!collapsed["signal"] && (
+                  <div className="flex flex-col gap-4 pt-1 font-sans animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between p-3.5 rounded-xl border border-dashed text-xs focus-within:ring-2 bg-black/10 dark:bg-white/[0.01]" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }}>
+                      <span className="font-mono text-[9px] font-bold opacity-45 uppercase tracking-wider">AEGIS DEVIATION SIGNAL</span>
+                      <span className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md ${
+                        report.signal?.action?.includes("BUY") || report.signal?.action?.includes("ACCUMULATION")
+                          ? "bg-[#5EEAD4]/10 text-[#5EEAD4]"
+                          : report.signal?.action?.includes("SELL")
+                          ? "bg-[#E2675A]/10 text-[#E2675A]"
+                          : "bg-[#C9A96A]/10 text-[#C9A96A]"
+                      }`}>
+                        {report.signal?.action}
+                      </span>
                     </div>
-                    
-                    <div className="flex flex-col bg-white/5 p-3 rounded-lg border border-white/10">
-                      <span className="font-bold opacity-50 uppercase tracking-wider text-[10px] mb-2">The Squaring Date (Next Pivot)</span>
-                      <p className="font-mono text-sm leading-relaxed text-[#00FF85]">{report.timeAndPrice?.squaringDatePredict}</p>
+
+                    <div className="grid grid-cols-2 gap-3 text-[10px] font-mono">
+                      <div className="bg-white/5 p-2.5 rounded-lg border border-white/5">
+                        <span className="opacity-40 uppercase block text-[8px] font-bold mb-1">PROBABILITY</span>
+                        <span className="text-sm font-bold text-[#5EEAD4] tracking-tight">{report.signal?.probabilityOfCall}</span>
+                      </div>
+                      <div className="bg-white/5 p-2.5 rounded-lg border border-white/5">
+                        <span className="opacity-40 uppercase block text-[8px] font-bold mb-1">SIGNAL QUALITY</span>
+                        <span className="text-sm font-bold text-[#C9A96A] tracking-tight">{report.riskEngine?.signalQualityRating || "A+"}</span>
+                      </div>
                     </div>
-                    
+
                     <div>
-                      <h4 className="text-[10px] font-bold opacity-30 uppercase mb-2 mt-2">Hidden Vibrational Nodes</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {report.timeAndPrice?.hiddenVibrationalNodes?.map((n, i) => (
-                          <span key={i} className="text-xs font-mono font-bold text-[#00D1FF] bg-[#00D1FF]/10 px-2 py-1 rounded-md border border-[#00D1FF]/20">
-                            {n}
+                      <span className="text-[8px] font-mono font-bold opacity-30 uppercase tracking-widest block mb-1">Justification Analysis</span>
+                      <p className="text-[11px] leading-relaxed opacity-85">{report.signal?.strategicJustification}</p>
+                    </div>
+
+                    <button
+                      onClick={onDeepScan}
+                      disabled={isAnalyzing}
+                      className={`w-full py-2 bg-black/10 text-xs font-mono font-bold uppercase rounded-lg border flex items-center justify-center gap-1.5 transition-all text-current hover:bg-[#C9A96A] hover:text-black hover:border-transparent cursor-pointer ${
+                        isDarkActive ? "border-white/10" : "border-black/10"
+                      }`}
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? "animate-spin" : ""}`} />
+                      <span>Reflash coordinates</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* CYCLIC TIME & PRICE MATHEMATICS */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+              }`}>
+                <CollapseHeader title="TIME & PRICE MATHEMATICS" icon={Activity} sectionKey="coordinates" />
+                
+                {!collapsed["coordinates"] && (
+                  <div className="flex flex-col gap-3 font-mono text-[10px] animate-in fade-in duration-300">
+                    <div className="bg-black/10 dark:bg-white/5 p-3 rounded-lg border border-current opacity-90">
+                      <span className="opacity-40 uppercase block text-[8px] font-bold mb-1 tracking-wider">Vector Alignment Mapping</span>
+                      <p className="font-sans text-xs leading-relaxed opacity-90">{report.timeAndPrice?.quantumVectorAlignment}</p>
+                    </div>
+
+                    <div className="bg-[#5EEAD4]/5 p-3 rounded-lg border border-[#5EEAD4]/15">
+                      <span className="text-[#5EEAD4] opacity-50 uppercase block text-[8px] font-bold mb-1 tracking-wider">Estimated Next Pivot (Squaring Date)</span>
+                      <p className="font-sans text-xs leading-relaxed text-[#5EEAD4] font-black">{report.timeAndPrice?.squaringDatePredict}</p>
+                    </div>
+
+                    <div>
+                      <span className="opacity-40 uppercase tracking-widest text-[8px] block mb-1.5">Aegis Convergence Nodes</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {report.timeAndPrice?.hiddenVibrationalNodes?.map((node, i) => (
+                          <span key={i} className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded border ${
+                            isDarkActive ? "bg-white/5 border-white/10 text-[#C9A96A]" : "bg-black/5 border-black/10 text-[#9C7B3E]"
+                          }`}>
+                            {node}
                           </span>
                         ))}
                       </div>
                     </div>
                   </div>
-                </section>
+                )}
+              </div>
 
-                <SquareOfNineMatrix 
-                  currentPrice={asset.priceUsd} 
-                  vibrationalNodes={report.timeAndPrice?.hiddenVibrationalNodes || []}
-                  isDarkActive={isDarkActive}
-                />
-
-                {/* 3. MARKET STRUCTURE */}
-                <section className={`p-6 rounded-2xl border ${isDarkActive ? "bg-[#080D16] border-white/5" : "bg-white border-black/5"}`}>
-                  <SectionHeader icon={ShieldAlert} title="THE PSYCHOLOGICAL WARFARE" />
-                  <div className="flex flex-col gap-5 text-sm">
-                     <div className="flex flex-col gap-2">
-                        <span className="text-[10px] font-bold text-[#FF8A00] uppercase tracking-tighter">Crowd Mindset State</span>
-                        <p className="opacity-90 leading-relaxed text-sm">{report.psychology?.crowdMindsetState}</p>
-                     </div>
-                     <div className="flex flex-col gap-2 p-4 bg-[#FF3B69]/5 rounded-xl border border-[#FF3B69]/20 relative overflow-hidden">
-                        <ZapOff className="absolute -right-4 -top-4 w-24 h-24 text-[#FF3B69]/10 rotate-12" />
-                        <span className="text-xs font-black text-[#FF3B69] uppercase tracking-widest flex items-center gap-2 relative z-10">
-                          <AlertTriangle className="w-4 h-4" />
-                          The Liquidity Trap Zone
-                        </span>
-                        <p className="opacity-90 leading-relaxed text-sm relative z-10 mt-1">
-                          {report.psychology?.liquidityTrapZone}
-                        </p>
-                     </div>
+              {/* THE GEOMETRIC SQUARE OF NINE MATRIX */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+              }`}>
+                <CollapseHeader title="GANN HIGH-DIMENSIONAL MATH" icon={Cpu} sectionKey="geometry" />
+                
+                {!collapsed["geometry"] && (
+                  <div className="pt-1 animate-in fade-in duration-300">
+                    <SquareOfNineMatrix 
+                      currentPrice={asset.priceUsd} 
+                      vibrationalNodes={report.timeAndPrice?.hiddenVibrationalNodes || []}
+                      isDarkActive={isDarkActive}
+                    />
                   </div>
-                </section>
+                )}
+              </div>
 
-                <section className={`p-6 rounded-2xl border flex flex-col justify-between ${isDarkActive ? "bg-[#080D16] border-white/5" : "bg-white border-black/5"}`}>
-                  <div>
-                    <SectionHeader icon={Globe} title="GEOPOLITICAL COMPRESSION" />
-                    <p className="text-sm opacity-90 leading-relaxed">
-                      {report.geopolitics?.macroVolatilityImpact}
-                    </p>
-                  </div>
-                  <div className="mt-6 p-4 bg-[#00D1FF]/10 rounded-xl border border-[#00D1FF]/20 relative">
-                     <div className="absolute top-0 right-4 px-2 py-1 bg-[#00D1FF] text-black text-[8px] font-black tracking-widest uppercase rounded-b-md">
-                       Classified
-                     </div>
-                     <span className="text-[10px] font-bold text-[#00D1FF] uppercase block mb-2 opacity-80">The Hidden Anomaly</span>
-                     <p className="font-mono text-sm leading-relaxed text-white">
-                       {report.anomaly?.hiddenAnomaly}
-                     </p>
-                  </div>
-                </section>
-
-                {/* 5. THE AEGIS SIGNAL */}
-                <section className={`p-0 rounded-2xl border overflow-hidden relative ${isDarkActive ? "bg-black border-white/10" : "bg-white border-black/10"}`}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#00D1FF]/5 to-transparent pointer-events-none" />
-                  <div className="p-6 relative z-10 h-full flex flex-col justify-between">
-                    <SectionHeader icon={Zap} title="THE AEGIS SIGNAL" />
-                    
-                    <div className="flex flex-col items-center justify-center py-6">
-                       <span className={`text-3xl font-black uppercase tracking-widest text-[#00FF85] mb-2 px-6 py-2 rounded-xl border ${
-                         report.signal?.action?.includes("BUY") || report.signal?.action?.includes("ACCUMULATION")
-                           ? "bg-[#00FF85]/10 border-[#00FF85]/30 text-[#00FF85]"
-                           : report.signal?.action?.includes("SELL")
-                           ? "bg-[#FF3B69]/10 border-[#FF3B69]/30 text-[#FF3B69]"
-                           : "bg-[#FFB800]/10 border-[#FFB800]/30 text-[#FFB800]"
-                       }`}>
-                         {report.signal?.action}
-                       </span>
-                       <p className="text-center text-xs opacity-70 mt-4 leading-relaxed max-w-[80%] mx-auto">
-                         {report.signal?.strategicJustification}
-                       </p>
+              {/* PSYCHOLOGICAL WARFARE & TRAPPING INDICATORS */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+              }`}>
+                <CollapseHeader title="THE PSYCHO-TRAFFIC REPORT" icon={Brain} sectionKey="psychology" />
+                
+                {!collapsed["psychology"] && (
+                  <div className="flex flex-col gap-3 font-sans text-xs animate-in fade-in duration-300">
+                    <div>
+                      <span className="text-[10px] font-mono opacity-50 uppercase block font-bold mb-1">State Sentiment</span>
+                      <p className="opacity-80 leading-relaxed font-sans">{report.psychology?.crowdMindsetState}</p>
                     </div>
-                    
-                    <div className="flex flex-col gap-2 mt-4 text-[10px] font-mono">
-                       <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
-                         <span className="opacity-40 uppercase font-black">AI Conviction Score</span>
-                         <span className="font-bold text-sm text-[#00D1FF]">{report.signal?.probabilityOfCall}</span>
-                       </div>
+
+                    <div className="bg-[#E2675A]/5 p-4 rounded-xl border border-[#E2675A]/20 relative overflow-hidden">
+                      <ZapOff className="absolute -right-4 -top-4 w-20 h-20 text-[#E2675A]/5 rotate-12" />
+                      <span className="text-[10px] font-mono font-bold text-[#E2675A] uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Liquidity Trap Risk Range
+                      </span>
+                      <p className="leading-relaxed opacity-85 text-[11px] relative z-10 mt-1">
+                        {report.psychology?.liquidityTrapZone}
+                      </p>
                     </div>
                   </div>
-                </section>
-                
-                {/* 5.1 MULTI-TIER EXECUTION */}
-                <div className="col-span-1 lg:col-span-2">
-                   {report.signal?.plans && (
-                     <ExecutionPlansPanel 
-                       plans={report.signal.plans} 
-                       isDarkActive={isDarkActive} 
-                     />
-                   )}
-                </div>
+                )}
+              </div>
 
-                {/* 5.2 5-YEAR PROJECTION */}
-                <div className="col-span-1 lg:col-span-2">
-                   {report.signal?.fiveYearForecast && (
-                     <FiveYearForecastPanel 
-                       forecast={report.signal.fiveYearForecast} 
-                       isDarkActive={isDarkActive} 
-                     />
-                   )}
-                </div>
+              {/* GEOPOLITICAL COMPRESSION */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+              }`}>
+                <CollapseHeader title="GEOPOLITICAL ENVELOPE" icon={Globe} sectionKey="geopolitical" />
                 
-                {/* 10. CHAT ANALYST (QUANTUM / DEEP QUANT) */}
-                <section className={`col-span-1 lg:col-span-2 p-6 rounded-2xl border ${isDarkActive ? "bg-[#080E16] border-white/10" : "bg-white border-black/10"} flex flex-col gap-6 h-[600px]`}>
-                  <SectionHeader icon={MessageSquare} title="QUANTUM ANALYST DESK" />
+                {!collapsed["geopolitical"] && (
+                  <div className="flex flex-col gap-3 font-sans text-xs animate-in fade-in duration-300">
+                    <p className="opacity-85 leading-relaxed">{report.geopolitics?.macroVolatilityImpact}</p>
+                    
+                    <div className="bg-black/10 dark:bg-white/5 p-4 rounded-xl border border-current relative">
+                      <div className="absolute top-0 right-4 px-2 py-0.5 bg-[#C9A96A]/20 text-[#C9A96A] text-[7px] font-mono font-bold uppercase tracking-widest rounded-b-lg">
+                        Classified
+                      </div>
+                      <span className={`text-[9px] font-mono font-black uppercase text-current block mb-1 opacity-75`}>Sovereign Anomaly Vector</span>
+                      <p className="leading-relaxed opacity-95 text-[11px] font-mono">
+                        {report.anomaly?.hiddenAnomaly}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* HEURISTIC PROBABILITIES outlooks */}
+              {report.aiPrediction && (
+                <div className={`p-5 rounded-2xl border transition-all ${
+                  isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+                }`}>
+                  <CollapseHeader title="HEURISTIC PROBABILITIES" icon={PieChart} sectionKey="projections" />
                   
-                  <div className={`flex-1 overflow-y-auto rounded-xl p-4 flex flex-col gap-4 ${isDarkActive ? "bg-black/50" : "bg-[#F3F6FA]"}`}>
-                    {chatMessages.map((msgRef) => (
-                      <div key={msgRef.id} className={`flex flex-col max-w-[85%] ${msgRef.role === "user" ? "self-end items-end" : "self-start items-start"}`}>
-                        <div className={`px-4 py-3 rounded-2xl shadow-sm text-sm ${
-                          msgRef.role === "user" 
-                            ? "bg-[#00D1FF] text-black font-medium" 
-                            : isDarkActive 
-                              ? "bg-[#111A29] text-white border border-white/5" 
-                              : "bg-white text-black border border-black/5"
-                        }`}>
-                           {msgRef.content}
-                        </div>
-                        <span className="text-[10px] font-mono opacity-40 mt-1 px-1">{msgRef.timestamp}</span>
-                      </div>
-                    ))}
-                    {isChatLoading && (
-                      <div className="self-start px-4 py-3 rounded-2xl bg-[#111A29] border border-white/5 flex gap-2 items-center">
-                         <RefreshCw className="w-4 h-4 animate-spin text-[#00D1FF]" />
-                         <span className="text-xs font-mono opacity-50">COMPILING...</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <input 
-                      type="text" 
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && onSendChat()}
-                      placeholder="Query specific entry nodes, macro timing cycles, or planetary resistance..."
-                      className={`flex-1 h-12 px-4 rounded-xl border text-sm transition-all focus:border-[#00D1FF] outline-none ${
-                        isDarkActive ? "bg-black text-white border-white/10" : "bg-white text-black border-black/10"
-                      }`}
-                    />
-                    <button 
-                      onClick={onSendChat}
-                      disabled={isChatLoading || !chatInput.trim()}
-                      className="h-12 px-6 bg-[#00D1FF] text-black font-black uppercase tracking-widest text-xs rounded-xl transition-all hover:bg-[#00b2d8] disabled:opacity-50"
-                    >
-                      EXECUTE
-                    </button>
-                  </div>
-                </section>
-              </div>
-
-              {/* 11. QUANTUM PROJECTIONS (FULL FRAMEWORK) */}
-              <div className="mt-6 flex flex-col gap-6">
-                <QuantumProjections 
-                  currentPrice={asset.priceUsd}
-                  isDarkActive={isDarkActive}
-                  symbol={asset.symbol}
-                />
-                
-                {report.aiPrediction && (
-                  <AIPredictionPanel 
-                    data={report.aiPrediction}
-                    isDarkActive={isDarkActive}
-                  />
-                )}
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {report.marketPsychology && (
-                    <MarketPsychologyEngine 
-                      data={report.marketPsychology}
-                      isDarkActive={isDarkActive}
-                    />
-                  )}
-                  {report.riskEngine && (
-                    <RiskEnginePanel 
-                      data={report.riskEngine}
-                      isDarkActive={isDarkActive}
-                    />
+                  {!collapsed["projections"] && (
+                    <div className="pt-1 animate-in fade-in duration-300">
+                      <AIPredictionPanel 
+                        data={report.aiPrediction}
+                        isDarkActive={isDarkActive}
+                      />
+                    </div>
                   )}
                 </div>
+              )}
+
+              {/* MARKET PSYCHOLOGY EMOTIONS SCALING */}
+              {report.marketPsychology && (
+                <div className={`p-5 rounded-2xl border transition-all ${
+                  isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+                }`}>
+                  <CollapseHeader title="CROWD EMOTIONAL SCALES" icon={Sliders} sectionKey="emotions" />
+                  
+                  {!collapsed["emotions"] && (
+                    <div className="pt-1 animate-in fade-in duration-300">
+                      <MarketPsychologyEngine 
+                        data={report.marketPsychology}
+                        isDarkActive={isDarkActive}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CONFIDENCE & RISK MULTI INDICES */}
+              {report.riskEngine && (
+                <div className={`p-5 rounded-2xl border transition-all ${
+                  isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-md" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+                }`}>
+                  <CollapseHeader title="RISK INDEX MONITOR" icon={ShieldAlert} sectionKey="risk" />
+                  
+                  {!collapsed["risk"] && (
+                    <div className="pt-1 animate-in fade-in duration-300">
+                      <RiskEnginePanel 
+                        data={report.riskEngine}
+                        isDarkActive={isDarkActive}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* INTEGRATED SPECIALIST CHAT DESK */}
+              <div className={`p-5 rounded-2xl border flex flex-col transition-all h-[420px] ${
+                isDarkActive ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-lg" : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
+              }`}>
+                <CollapseHeader title="UNIFIED SPECIALIST CO-CORE" icon={MessageSquare} sectionKey="chat" />
                 
-                {report.newsIntelligence && (
-                  <NewsIntelligenceSystem 
-                    data={report.newsIntelligence}
-                    isDarkActive={isDarkActive}
-                  />
+                {!collapsed["chat"] && (
+                  <div className="flex-1 flex flex-col gap-3 h-full overflow-hidden animate-in fade-in duration-300">
+                    <div className={`flex-1 overflow-y-auto rounded-xl p-3 flex flex-col gap-3.5 border ${
+                      isDarkActive ? "bg-black/25 border-white/5" : "bg-[#F7F5F0]/60 border-black/5"
+                    }`}>
+                      {chatMessages.slice(0).map((msgRef) => (
+                         <div key={msgRef.id} className={`flex flex-col max-w-[85%] ${
+                           msgRef.role === "user" ? "self-end items-end" : "self-start items-start"
+                         }`}>
+                           <div className={`px-3 py-2 rounded-xl text-[11px] leading-relaxed relative ${
+                             msgRef.role === "user" 
+                               ? (isDarkActive ? "bg-[#C9A96A] text-black font-semibold rounded-tr-none" : "bg-[#9C7B3E] text-white font-semibold rounded-tr-none") 
+                               : (isDarkActive 
+                                   ? "bg-[#1A1A22] text-[#EDEAE3] border border-white/5 rounded-tl-none" 
+                                   : "bg-white text-[#1A1A1F] border border-black/5 rounded-tl-none")
+                           }`}>
+                              {msgRef.content}
+                           </div>
+                           <span className="text-[7.5px] font-mono opacity-30 mt-0.5 px-0.5">{msgRef.timestamp}</span>
+                         </div>
+                      ))}
+                      {isChatLoading && (
+                        <div className="self-start px-3 py-2 rounded-xl bg-black/10 dark:bg-white/5 border border-current opacity-80 flex gap-1.5 items-center">
+                           <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C9A96A]" />
+                           <span className="text-[9px] font-mono opacity-40 uppercase tracking-widest">Compiling coordinates...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && onSendChat()}
+                        placeholder="Query squaring nodes, triggers..."
+                        className={`flex-1 h-10 px-3 rounded-lg border text-[11px] transition-all outline-none ${
+                          isDarkActive 
+                            ? "bg-black text-white border-white/10 focus:border-[#C9A96A]/60" 
+                            : "bg-white text-black border-black/10 focus:border-[#9C7B3E]/60"
+                        }`}
+                      />
+                      <button 
+                        onClick={onSendChat}
+                        disabled={isChatLoading || !chatInput.trim()}
+                        className={`h-10 px-4 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all disabled:opacity-50 cursor-pointer ${
+                          isDarkActive 
+                            ? "bg-[#C9A96A] text-black hover:bg-[#B08A4E]" 
+                            : "bg-[#9C7B3E] text-white hover:bg-[#7E602A]"
+                        }`}
+                      >
+                        Ask
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-            </>
-          )}
-        </div>
-      )}
 
-      {/* HISTORY TAB */}
-      {activeTab === "HISTORY" && (
-        <div className={`p-6 rounded-2xl border ${isDarkActive ? "bg-[#080D16] border-white/5" : "bg-white border-black/5"}`}>
-          <SectionHeader icon={History} title="LOCAL TRADE HISTORY" color="text-[#FF8A00]" />
-          <div className="flex flex-col gap-2">
-            {userProfile.history.filter(t => t.assetId === asset.id).length === 0 ? (
-               <div className="py-12 flex flex-col items-center justify-center text-center opacity-30">
-                 <History className="w-12 h-12 mb-4" />
-                 <span className="text-sm font-bold uppercase tracking-widest">No paper trades executed for {asset.symbol}</span>
-               </div>
-            ) : (
-               userProfile.history.filter(t => t.assetId === asset.id).sort((a,b) => b.timestamp - a.timestamp).map((trade) => (
-                 <div key={trade.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
-                   <div className="flex items-center gap-4">
-                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${
-                       trade.type === "BUY" ? "bg-[#00FF85]/10 text-[#00FF85]" : "bg-[#FF3B69]/10 text-[#FF3B69]"
-                     }`}>
-                       {trade.type.charAt(0)}
-                     </div>
-                     <div>
-                       <span className="block font-bold text-sm tracking-wide">{trade.amount} {trade.symbol}</span>
-                       <span className="text-xs font-mono opacity-50">{new Date(trade.timestamp).toLocaleString()}</span>
-                     </div>
-                   </div>
-                   <div className="text-right">
-                     <span className="block font-mono font-black text-sm">${trade.priceAtTrade.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                     <span className="text-[10px] uppercase font-bold opacity-40">Entry Price</span>
-                   </div>
-                 </div>
-               ))
-            )}
-          </div>
+            </div>
+          )}
+
         </div>
-      )}
-      
+
+      </div>
+
     </div>
   );
 };
