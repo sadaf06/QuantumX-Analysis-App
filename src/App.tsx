@@ -103,7 +103,14 @@ export default function App() {
   const [commandQuery, setCommandQuery] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [isCopilotPulsing, setIsCopilotPulsing] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsCopilotPulsing(false), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
 
   // Quick Action / Language Selection Modal States
   const [showSelectionModal, setShowSelectionModal] = useState(false);
@@ -1095,12 +1102,12 @@ export default function App() {
               </button>
 
               <button 
-                onClick={() => setIsCopilotOpen(!isCopilotOpen)}
+                onClick={() => { setIsCopilotOpen(!isCopilotOpen); setIsCopilotPulsing(false); }}
                 className={`p-2.5 rounded-xl border text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
                   isCopilotOpen 
                     ? (isDarkActive ? "bg-[#C9A96A]/10 border-[#C9A96A]/20 text-[#C9A96A]" : "bg-[#9C7B3E]/10 border-[#9C7B3E]/20 text-[#9C7B3E]")
                     : (isDarkActive ? "border-white/5 text-[#EDEAE3]/65 bg-transparent" : "border-black/5 text-[#1A1A1F]/65 bg-transparent")
-                }`}
+                } ${isCopilotPulsing ? "animate-pulse border-[#C9A96A]/50" : ""}`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Copilot</span>
