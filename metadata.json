@@ -1,0 +1,6 @@
+{
+  "name": "Quantum Crypto Intelligence X",
+  "description": "Institutional-grade AI-powered crypto market intelligence and decision-support engine featuring interactive Quantum analysis, multi-layer market structures, news tracking, and predictive forecasting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
