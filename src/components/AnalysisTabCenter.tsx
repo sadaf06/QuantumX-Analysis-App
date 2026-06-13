@@ -272,7 +272,7 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                            
                            <InstitutionalSentiment 
                               isDarkActive={isDarkActive} 
-                              symbol={activeTab.coin.symbol} 
+                              asset={activeTab.coin} 
                            />
                         </div>
 

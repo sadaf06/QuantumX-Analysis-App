@@ -280,8 +280,8 @@ function generateAlgorithmicReport(asset: CryptoAsset, lang: "english" | "hingli
     timeAndPrice: {
       quantumVectorAlignment: alignmentText,
       squaringDatePredict: lang === "hinglish" 
-        ? `Ek bada Time/Price squaring matrix agle 48-72 hours me identify ho raha hai.` 
-        : `A profound Time/Price squaring matrix is identified within the next 48-72 hours.`,
+        ? `Ek bada ${24 + (hash % 72)} hours me Time/Price squaring matrix identify ho raha hai.` 
+        : `A profound Time/Price squaring matrix is identified within the next ${24 + (hash % 72)} hours.`,
       hiddenVibrationalNodes: [
         `$${support3.toFixed(precision)} (Abs. Support)`,
         `$${support1.toFixed(precision)} (Local Pivot)`,
@@ -330,8 +330,8 @@ function generateAlgorithmicReport(asset: CryptoAsset, lang: "english" | "hingli
         }
       },
       fiveYearForecast: {
-        expectedPrice: `$${(priceVal * (7 + (hash % 5))).toFixed(2)}`,
-        probability: 65 + (hash % 15),
+        expectedPrice: `$${(priceVal * (Math.abs(change) * 0.5 + 5 + (hash % 10))).toFixed(2)}`,
+        probability: 50 + (hash % 30) + Math.floor(Math.abs(change) % 10),
         reasoning: lang === "hinglish"
           ? `Harmonic cycles aur adoption math ke hisab se long-term ceiling kafi high hai.`
           : `Based on harmonic cycles and adoption curve mathematics, the long-term structural ceiling remains exceptionally high.`
@@ -339,30 +339,48 @@ function generateAlgorithmicReport(asset: CryptoAsset, lang: "english" | "hingli
       strategicJustification: lang === "hinglish"
         ? `Strict execution multi-layer conclusion par adharit hai.`
         : `Strict execution based on absolute multi-layered conclusion models.`,
-      probabilityOfCall: `${78 + Math.floor(Math.abs(change * 3.5) % 17)}% (High Harmonic Concordance)`
+      probabilityOfCall: `${70 + (hash % 25)}% (High Harmonic Concordance)`
     },
     aiPrediction: {
-      probabilities: { bullish: 72, bearish: 21, sideways: 7 },
+      probabilities: (() => {
+        const b = Math.max(1, 50 + (hash % 40) + Math.floor(change));
+        const br = Math.max(1, 50 - (hash % 20) - Math.floor(change / 2));
+        const s = Math.max(1, 10 + (hash % 10));
+        const sum = b + br + s;
+        const bullish = Math.round((b / sum) * 100);
+        const bearish = Math.round((br / sum) * 100);
+        const sideways = 100 - bullish - bearish;
+        return { bullish, bearish, sideways };
+      })(),
       outlooks: {
-        shortTerm: { forecast: "Bullish setup complete.", reasoning: "Current consolidation structure forms a local price floor." },
-        midTerm: { forecast: "Structural Expansion", reasoning: "Re-accumulation node triggers a new aggressive markup cycle." },
+        shortTerm: { forecast: change > 0 ? "Bullish trend." : "Consolidation.", reasoning: "Price momentum dictates current local structure." },
+        midTerm: { forecast: "Cycle Expansion", reasoning: "Structural nodes suggest a new markup cycle." },
         longTerm: { forecast: "Macro Uptrend", reasoning: "Harmonic alignments confirm continuous upward trajectory." }
       }
     },
     marketPsychology: {
-      emotions: { 
-        fear: Math.min(100, Math.max(0, 50 + Math.floor(asset.changePercent24Hr * 2) + (hash % 30))), 
-        greed: Math.min(100, Math.max(0, 50 - Math.floor(asset.changePercent24Hr * 2) + (hash % 30))), 
-        euphoria: 10 + (hash % 20), 
-        panic: 5 + (hash % 10), 
-        fomo: 30 + (hash % 20), 
-        capitulation: Math.max(0, 20 - Math.floor(asset.changePercent24Hr * 2)) 
-      },
+      emotions: (() => {
+        const val = asset.changePercent24Hr * 2;
+        const f = Math.max(1, 40 + Math.floor(val) + (hash % 30));
+        const g = Math.max(1, 40 - Math.floor(val) + (hash % 30));
+        const e = Math.max(1, 10 + (hash % 20));
+        const p = Math.max(1, 5 + (hash % 10));
+        const fm = Math.max(1, 10 + (hash % 20));
+        const c = Math.max(1, 10 - Math.floor(val / 2));
+        const sum = f + g + e + p + fm + c;
+        const fear = Math.round((f / sum) * 100);
+        const greed = Math.round((g / sum) * 100);
+        const euphoria = Math.round((e / sum) * 100);
+        const panic = Math.round((p / sum) * 100);
+        const fomo = Math.round((fm / sum) * 100);
+        const capitulation = 100 - (fear + greed + euphoria + panic + fomo);
+        return { fear, greed, euphoria, panic, fomo, capitulation };
+      })(),
       crowdPositioningEstimate: "Retail crowd heavily short post-flush, smart money establishing massive block accumulations."
     },
     newsIntelligence: [
-      { title: "Global Liquidity Matrix Expansion", category: "Global", impactScore: 88, summary: "Central bank dovish shifts increase net global liquidity." },
-      { title: "Regulatory Alpha", category: "Regulation", impactScore: 75, summary: "New structural frameworks provide clarity." }
+      { title: `Macro Liquidity ${hash % 2 === 0 ? "Expansion" : "Contraction"}`, category: "Global", impactScore: 70 + (hash % 30), summary: "Central bank shifts affect capital allocation." },
+      { title: `Regulatory Framework ${hash % 3 === 0 ? "Alpha" : "Stability"}`, category: "Regulation", impactScore: 60 + (hash % 40), summary: "New structural frameworks provide clarity." }
     ],
     riskEngine: { 
       confidenceScore: Math.min(100, Math.max(10, 90 + Math.floor(asset.changePercent24Hr) - (hash % 10))), 

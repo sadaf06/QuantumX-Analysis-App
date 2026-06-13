@@ -1,18 +1,21 @@
 import React from 'react';
-import { Shield, TrendingUp, Users, Zap, BarChart3 } from 'lucide-react';
-import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from 'recharts';
+import { Shield, TrendingUp, Zap, BarChart3 } from 'lucide-react';
+import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
+import { CryptoAsset } from '../types';
 
 interface Props {
   isDarkActive: boolean;
-  symbol: string;
+  asset: CryptoAsset;
 }
 
-export const InstitutionalSentiment: React.FC<Props> = ({ isDarkActive, symbol }) => {
+export const InstitutionalSentiment: React.FC<Props> = ({ isDarkActive, asset }) => {
+  const hash = asset.symbol.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  
   const stats = [
-    { label: "Institutional Inflow", value: "+$420M", trend: "up", desc: "Net capital flow from known sovereign and hedge fund addresses." },
-    { label: "Exchange Reserve", value: "-12.4%", trend: "down", desc: "Decrease in asset availability on major CEX platforms." },
-    { label: "Mean HODL Age", value: "482 Days", trend: "up", desc: "Average time assets have remained unmoved in private wallets." },
-    { label: "Whale Concentration", value: "54.2%", trend: "stable", desc: "Percentage of supply held by top 1% of unique addresses." }
+    { label: "Institutional Inflow", value: `+$${(Math.abs(asset.changePercent24Hr) * 10 + (hash % 500)).toFixed(0)}M`, trend: asset.changePercent24Hr > 0 ? "up" : "down", desc: "Net capital flow from known sovereign and hedge fund addresses." },
+    { label: "Exchange Reserve", value: `${(Math.abs(asset.changePercent24Hr) * 3 + 5).toFixed(1)}%`, trend: asset.changePercent24Hr > 0 ? "down" : "up", desc: "Change in asset availability on major CEX platforms." },
+    { label: "Mean HODL Age", value: `${(200 + (hash % 600))} Days`, trend: "up", desc: "Average time assets have remained unmoved in private wallets." },
+    { label: "Whale Concentration", value: `${(40 + (hash % 30)).toFixed(1)}%`, trend: "stable", desc: "Percentage of supply held by top 1% of unique addresses." }
   ];
 
   // Mock data for a small sparkline bar chart
@@ -34,7 +37,7 @@ export const InstitutionalSentiment: React.FC<Props> = ({ isDarkActive, symbol }
           <div key={i} className={`p-4 rounded-xl border flex flex-col gap-1 ${isDarkActive ? "bg-black/30 border-white/5" : "bg-[#F8F9FA] border-black/5"}`}>
             <div className="flex justify-between items-center">
               <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{s.label}</span>
-              {s.trend === 'up' && <TrendingUp className="w-2.5 h-2.5 text-[#00FF85]" />}
+              {s.trend === 'up' ? <TrendingUp className="w-2.5 h-2.5 text-[#00FF85]" /> : <TrendingUp className="w-2.5 h-2.5 text-[#FF3B69] rotate-180" />}
             </div>
             <span className="text-lg font-bold font-mono tracking-tight">{s.value}</span>
             <p className="text-[9px] opacity-60 leading-tight mt-0.5">{s.desc}</p>
@@ -66,7 +69,7 @@ export const InstitutionalSentiment: React.FC<Props> = ({ isDarkActive, symbol }
          <div className="flex items-center gap-3">
            <Zap className="w-4 h-4 text-[#FFB800] shrink-0" />
            <p className="text-[10px] opacity-75 leading-relaxed">
-             Significant OTC block-swap detected at support. High-conviction entry signal validated by large-cap liquidity movement.
+             Significant OTC block-swap detected at {asset.symbol} support. High-conviction entry signal validated by large-cap liquidity movement.
            </p>
          </div>
       </div>

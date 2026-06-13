@@ -55,11 +55,31 @@ export default function App() {
   }, [theme]);
 
   // Top-Level Tab States
-  const [activeTopTab, setActiveTopTab] = useState<"TRADE" | "ANALYSIS" | "PORTFOLIO" | "CHAT">("TRADE");
+  const [activeTopTab, setActiveTopTab] = useState<"TRADE" | "ANALYSIS" | "PORTFOLIO" | "CHAT">(() => {
+    return (localStorage.getItem("quantum_active_top_tab") as any) || "TRADE";
+  });
 
   // Multi-coin Analysis Sub-Tabs States
-  const [analysisTabs, setAnalysisTabs] = useState<AnalyzedCoinTab[]>([]);
-  const [activeAnalysisIndex, setActiveAnalysisIndex] = useState<number>(-1);
+  const [analysisTabs, setAnalysisTabs] = useState<AnalyzedCoinTab[]>(() => {
+    const saved = localStorage.getItem("quantum_analysis_tabs");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [activeAnalysisIndex, setActiveAnalysisIndex] = useState<number>(() => {
+    const saved = localStorage.getItem("quantum_active_analysis_index");
+    return saved ? JSON.parse(saved) : -1;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("quantum_active_top_tab", activeTopTab);
+  }, [activeTopTab]);
+
+  useEffect(() => {
+    localStorage.setItem("quantum_analysis_tabs", JSON.stringify(analysisTabs));
+  }, [analysisTabs]);
+
+  useEffect(() => {
+    localStorage.setItem("quantum_active_analysis_index", JSON.stringify(activeAnalysisIndex));
+  }, [activeAnalysisIndex]);
 
   // Quick Action / Language Prompt States
   const [showSelectionModal, setShowSelectionModal] = useState(false);
