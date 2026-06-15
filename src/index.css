@@ -20,6 +20,29 @@ body {
   color: #EDEAE3;
 }
 
+.markdown-body {
+  @apply text-current font-sans;
+}
+.markdown-body p {
+  @apply mb-2 last:mb-0;
+}
+.markdown-body strong {
+  @apply font-bold opacity-100;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  @apply font-bold mt-3 mb-1;
+}
+.markdown-body ul {
+  @apply list-disc list-inside mb-2;
+}
+.markdown-body ol {
+  @apply list-decimal list-inside mb-2;
+}
+.markdown-body a {
+  @apply text-[#C9A96A] hover:underline;
+}
+
+
 /* Custom scrollbars for the luxury aesthetic */
 ::-webkit-scrollbar {
   width: 6px;

@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   BarChart3,
   Terminal,
-  Cpu
+  Cpu,
+  X
 } from "lucide-react";
 import { CryptoAsset, MarketGlobalStats } from "../types";
 
@@ -48,6 +49,7 @@ export const MarketDashboard: React.FC<Props> = ({
   timeSinceUpdate
 }) => {
   const [filterMode, setFilterMode] = useState<"ALL" | "GAINERS" | "LOSERS">("ALL");
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
@@ -291,27 +293,55 @@ export const MarketDashboard: React.FC<Props> = ({
               ? "bg-[#101017] border-[rgba(255,255,255,0.06)] shadow-lg" 
               : "bg-white border-[rgba(26,26,31,0.06)] shadow-sm"
           }`}>
-            <h3 className={`text-[10px] uppercase tracking-[0.2em] font-mono font-bold opacity-60 mb-4 flex items-center gap-2 ${
-              isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
-            }`}>
-              <Search className="w-3.5 h-3.5" /> Core Workspace Search
-            </h3>
-            
-            <div className="relative">
-              <input 
-                type="text"
-                placeholder="Lookup asset symbol (e.g. BTC)..."
-                value={searchQuery}
-                onFocus={() => setIsSearchFocused(true)}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full h-11 pl-11 pr-4 rounded-xl text-xs bg-transparent border outline-none font-medium transition-all ${
-                  isDarkActive 
-                    ? "border-[rgba(255,255,255,0.08)] text-[#EDEAE3] placeholder-[#EDEAE3]/30 focus:border-[#C9A96A]/50 bg-black/25" 
-                    : "border-[rgba(26,26,31,0.08)] text-[#1A1A1F] placeholder-[#1A1A1F]/30 focus:border-[#9C7B3E]/50 bg-[#F7F5F0]/30"
-                }`}
-              />
-              <Search className="absolute left-4 top-3.5 w-4 h-4 opacity-40 text-current" />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-[10px] uppercase tracking-[0.2em] font-mono font-bold opacity-60 flex items-center gap-2 ${
+                isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+              }`}>
+                <Search className="w-3.5 h-3.5" /> Core Workspace Search
+              </h3>
+              {!isSearchExpanded && (
+                <button
+                  onClick={() => setIsSearchExpanded(true)}
+                  className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                    isDarkActive 
+                      ? "border-[rgba(255,255,255,0.08)] bg-black/25 hover:border-[#C9A96A] text-[#EDEAE3]"
+                      : "border-[rgba(26,26,31,0.08)] bg-[#F7F5F0]/30 hover:border-[#9C7B3E] text-[#1A1A1F]"
+                  }`}
+                  title="Expand search bar"
+                >
+                  <Search className="w-3.5 h-3.5 opacity-80" />
+                </button>
+              )}
             </div>
+            
+            {isSearchExpanded && (
+              <div className="relative animate-in fade-in zoom-in-95 duration-150">
+                <input 
+                  type="text"
+                  autoFocus
+                  placeholder="Lookup asset symbol (e.g. BTC)..."
+                  value={searchQuery}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full h-11 pl-11 pr-10 rounded-xl text-xs bg-transparent border outline-none font-medium transition-all ${
+                    isDarkActive 
+                      ? "border-[rgba(255,255,255,0.08)] text-[#EDEAE3] placeholder-[#EDEAE3]/30 focus:border-[#C9A96A]/50 bg-black/25" 
+                      : "border-[rgba(26,26,31,0.08)] text-[#1A1A1F] placeholder-[#1A1A1F]/30 focus:border-[#9C7B3E]/50 bg-[#F7F5F0]/30"
+                  }`}
+                />
+                <Search className="absolute left-4 top-3.5 w-4 h-4 opacity-40 text-current" />
+                <button
+                  onClick={() => {
+                    setIsSearchExpanded(false);
+                    setSearchQuery("");
+                    setIsSearchFocused(false);
+                  }}
+                  className="absolute right-3 top-3.5 hover:opacity-100 opacity-40 transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4 text-current" />
+                </button>
+              </div>
+            )}
 
             {/* AUTOCOMPLETE GRID OVERLAY */}
             {isSearchFocused && searchResults.length > 0 && (

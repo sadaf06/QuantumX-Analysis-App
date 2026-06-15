@@ -22,9 +22,13 @@ import {
   UserCheck2,
   CheckCircle,
   HelpCircle,
-  Award
+  Award,
+  Copy,
+  Check
 } from "lucide-react";
 import { CryptoAsset, CoinIntelligenceReport, ChatMessage } from "../types";
+import { TypewriterText } from "./TypewriterText";
+import Markdown from "react-markdown";
 import { SquareOfNineMatrix } from "./SquareOfNine";
 import { QuantumProjections } from "./QuantumProjections";
 import { AIPredictionPanel } from "./AIPredictionPanel";
@@ -55,6 +59,7 @@ interface Props {
   onOpenTradeView: (asset: CryptoAsset) => void;
   allAssets: CryptoAsset[];
   onTriggerScanForAsset: (asset: CryptoAsset) => void;
+  onClearIsNew: (msgId: string) => void;
 }
 
 export const AnalysisTabCenter: React.FC<Props> = ({
@@ -67,8 +72,17 @@ export const AnalysisTabCenter: React.FC<Props> = ({
   isDarkActive,
   onOpenTradeView,
   allAssets,
-  onTriggerScanForAsset
+  onTriggerScanForAsset,
+  onClearIsNew
 }) => {
+
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
+
+  const handleCopyMsg = (msgId: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(msgId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const SectionHeader = ({ icon: Icon, title, color = "text-[#C9A96A]" }: any) => (
     <div className="flex items-center gap-2.5 border-b pb-3 mb-4" style={{ borderColor: isDarkActive ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
@@ -434,7 +448,7 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                           <div className={`flex-1 overflow-y-auto rounded-xl p-4 flex flex-col gap-3.5 border ${
                             isDarkActive ? "bg-black/25 border-white/5" : "bg-[#F7F5F0]/60 border-black/5"
                           }`}>
-                            {activeTab.chatMessages.map((msg) => (
+                            {activeTab.chatMessages.map((msg, index) => (
                                <div key={msg.id} className={`flex flex-col max-w-[85%] ${
                                  msg.role === "user" ? "self-end items-end" : "self-start items-start"
                                }`}>
@@ -445,9 +459,34 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                                          ? "bg-[#161B24] text-[#EDEAE3] border border-white/5 rounded-tl-none" 
                                          : "bg-white text-[#1A1A1F] border border-black/5 rounded-tl-none")
                                  }`}>
-                                    {msg.content}
+                                    {msg.role === 'assistant' ? (
+                                      msg.isNew ? (
+                                        <TypewriterText text={msg.content} onComplete={() => onClearIsNew(msg.id)} />
+                                      ) : (
+                                        <Markdown>{msg.content}</Markdown>
+                                      )
+                                    ) : msg.content}
                                  </div>
-                                 <span className="text-[8px] font-mono opacity-30 mt-0.5 px-0.5">{msg.timestamp}</span>
+                                 <div className={`flex items-center gap-3 mt-0.5 px-0.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                   <span className="text-[8px] font-mono opacity-30">{msg.timestamp}</span>
+                                   <button 
+                                     onClick={() => handleCopyMsg(msg.id, msg.content)}
+                                     className="text-[9px] font-mono opacity-50 hover:opacity-100 flex items-center gap-1 cursor-pointer transition-all hover:text-[#C9A96A] select-none scale-102 hover:scale-105 active:scale-95"
+                                     title={msg.role === 'user' ? "Copy Question" : "Copy Answer"}
+                                   >
+                                     {copiedId === msg.id ? (
+                                       <>
+                                         <Check className="w-2.5 h-2.5 text-green-500" />
+                                         <span className="text-green-500 text-[8px] font-bold">Copied!</span>
+                                       </>
+                                     ) : (
+                                       <>
+                                         <Copy className="w-2.5 h-2.5" />
+                                         <span className="text-[8px]">{msg.role === 'user' ? "Copy" : "Copy"}</span>
+                                       </>
+                                     )}
+                                   </button>
+                                 </div>
                                </div>
                             ))}
                           </div>

@@ -12,26 +12,58 @@ import {
   Zap,
   Globe,
   Lock,
-  Compass
+  Compass,
+  Copy,
+  Check
 } from 'lucide-react';
 import { ChatMessage } from '../types';
+import { TypewriterText } from './TypewriterText';
+import Markdown from 'react-markdown';
 
 interface Props {
   isDarkActive: boolean;
 }
 
 export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'init',
-      role: 'assistant',
-      content: "Greetings. I am **The Aegis Oracle**, your institutional-grade trading cognitive partner. I specialize in identifying high-probability market shifts, geometric price symmetries, and mathematical trend exhaustions.\n\nHow can I refine your market strategy today?",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const saved = localStorage.getItem("quantum_general_assistant_messages");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Ensure old messages don't re-animate
+        return parsed.map((m: any) => ({ ...m, isNew: false }));
+      } catch (e) {
+        console.error(e);
+      }
     }
-  ]);
+    return [
+      {
+        id: 'init',
+        role: 'assistant',
+        content: "Greetings. I am **The Aegis Oracle**, your institutional-grade trading cognitive partner. I specialize in identifying high-probability market shifts, geometric price symmetries, and mathematical trend exhaustions.\n\nHow can I refine your market strategy today?",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isNew: false
+      }
+    ];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyMsg = (msgId: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(msgId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  useEffect(() => {
+    localStorage.setItem("quantum_general_assistant_messages", JSON.stringify(messages));
+  }, [messages]);
+
+  const handleClearIsNew = (msgId: string) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isNew: false } : m));
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -66,7 +98,8 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
           id: data.id,
           role: 'assistant',
           content: data.content,
-          timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isNew: true
         }]);
       } else {
         throw new Error('Network congestion detected in the Quantum relay.');
@@ -76,7 +109,8 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
         id: 'err_' + Date.now(),
         role: 'assistant',
         content: "Structural feedback loop detected. Connectivity with the Oracle Core is temporarily unstable. Please re-synchronize your inquiry.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isNew: true
       }]);
     } finally {
       setIsLoading(false);
@@ -160,7 +194,7 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 md:gap-5 no-scrollbar"
         >
-          {messages.map((msg) => (
+          {messages.map((msg, index) => (
             <div key={msg.id} className={`flex items-start gap-3 md:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
                 msg.role === 'assistant' 
@@ -178,9 +212,34 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
                       ? "bg-[#1A1A22] text-[#EDEAE3] border border-white/5 rounded-tl-none" 
                       : "bg-[#F7F5F0]/50 text-[#1A1A1F] border border-black/5 rounded-tl-none"
                 }`}>
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    msg.isNew ? (
+                      <TypewriterText text={msg.content} onComplete={() => handleClearIsNew(msg.id)} />
+                    ) : (
+                      <Markdown>{msg.content}</Markdown>
+                    )
+                  ) : msg.content}
                 </div>
-                <span className="text-[8px] font-mono opacity-30 mt-0.5 px-1">{msg.timestamp}</span>
+                <div className={`flex items-center gap-3 mt-0.5 px-1 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-[8px] font-mono opacity-30">{msg.timestamp}</span>
+                  <button 
+                    onClick={() => handleCopyMsg(msg.id, msg.content)}
+                    className="text-[9px] font-mono opacity-50 hover:opacity-100 flex items-center gap-1 cursor-pointer transition-all hover:text-[#C9A96A] select-none scale-102 hover:scale-105 active:scale-95"
+                    title={msg.role === 'user' ? "Copy Question" : "Copy Answer"}
+                  >
+                    {copiedId === msg.id ? (
+                      <>
+                        <Check className="w-2.5 h-2.5 text-green-500" />
+                        <span className="text-green-500 text-[8px] font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-2.5 h-2.5" />
+                        <span className="text-[8px]">{msg.role === 'user' ? "Copy" : "Copy"}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

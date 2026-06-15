@@ -5,27 +5,35 @@ import {
   Moon, 
   Sun, 
   Monitor, 
-  Radio,
-  Sliders,
-  Briefcase,
-  X,
-  MessageSquare,
-  Search,
-  Terminal,
-  Cpu,
-  Sparkles,
-  Lock,
-  Compass,
-  BookOpen,
-  ArrowRight,
-  ChevronLeft,
-  Activity,
-  Layers,
-  Keyboard,
-  ArrowUpRight,
-  User,
-  ArrowDownRight,
-  Menu
+  Radio, 
+  Sliders, 
+  Briefcase, 
+  X, 
+  MessageSquare, 
+  Search, 
+  Terminal, 
+  Cpu, 
+  Sparkles, 
+  Lock, 
+  Compass, 
+  BookOpen, 
+  ArrowRight, 
+  ChevronLeft, 
+  Activity, 
+  Layers, 
+  Keyboard, 
+  ArrowUpRight, 
+  User, 
+  ArrowDownRight, 
+  Menu,
+  Check,
+  Copy,
+  Plus,
+  Trash2,
+  Edit,
+  MessageSquareCode,
+  Paperclip,
+  Image
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -41,6 +49,8 @@ import { CoinDetail } from "./components/CoinDetail";
 import { PortfolioCenter } from "./components/PortfolioCenter";
 import { AnalysisTabCenter, AnalyzedCoinTab } from "./components/AnalysisTabCenter";
 import { AiAssistantTab } from "./components/AiAssistantTab";
+import { TypewriterText } from "./components/TypewriterText";
+import Markdown from "react-markdown";
 
 const INITIAL_PROFILE: UserProfile = {
   balance: 100000, // Starts with $100k
@@ -236,17 +246,202 @@ export default function App() {
   const [latency, setLatency] = useState(11);
   const [timeSinceUpdate, setTimeSinceUpdate] = useState(0);
 
-  // Copilot State-specific messages
-  const [copilotGlobalMessages, setCopilotGlobalMessages] = useState<ChatMessage[]>([
-    {
-      id: "copilot_init",
-      role: "assistant",
-      content: "I am your persistent **Aegis AI Copilot**. I analyze risk vectors, beta exposures, and cyclical squared resistance milestones.\n\nUse quick prompts below or ask anything about our portfolio.",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  // Copilot Sessions configuration for multi-chat support
+  interface CopilotSession {
+    id: string;
+    name: string;
+    messages: ChatMessage[];
+  }
+
+  const [copilotSessions, setCopilotSessions] = useState<CopilotSession[]>(() => {
+    const saved = localStorage.getItem("quantum_copilot_sessions");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((s: any) => ({
+            ...s,
+            messages: (s.messages || []).map((m: any) => ({ ...m, isNew: false }))
+          }));
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
-  ]);
+    return [
+      {
+        id: "general_default",
+        name: "General Companion Core",
+        messages: [
+          {
+            id: "copilot_init",
+            role: "assistant" as const,
+            content: "I am your persistent **Aegis AI Copilot**. I analyze risk vectors, beta exposures, and cyclical squared resistance milestones.\n\nUse quick prompts below or ask anything about our portfolio.",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isNew: false
+          }
+        ]
+      }
+    ];
+  });
+
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => {
+    return localStorage.getItem("quantum_copilot_active_session_id") || "general_default";
+  });
+
+  // Persist sessions and active session
+  useEffect(() => {
+    localStorage.setItem("quantum_copilot_sessions", JSON.stringify(copilotSessions));
+  }, [copilotSessions]);
+
+  useEffect(() => {
+    localStorage.setItem("quantum_copilot_active_session_id", activeSessionId);
+  }, [activeSessionId]);
+
+  // Retrieve active session's messages
+  const copilotGlobalMessages = useMemo(() => {
+    const active = copilotSessions.find(s => s.id === activeSessionId);
+    return active ? active.messages : [];
+  }, [copilotSessions, activeSessionId]);
+
+  // Set messages for active session helper
+  const setCopilotGlobalMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    setCopilotSessions(prev => 
+      prev.map(s => {
+        if (s.id === activeSessionId) {
+          const updated = typeof updater === 'function' ? updater(s.messages) : updater;
+          return { ...s, messages: updated };
+        }
+        return s;
+      })
+    );
+  };
+
+  // Coin Detail persistent chat history mapping
+  const [coinDetailChats, setCoinDetailChats] = useState<Record<string, ChatMessage[]>>(() => {
+    const saved = localStorage.getItem("quantum_coin_detail_chats");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const cleaned: Record<string, ChatMessage[]> = {};
+        for (const coinId in parsed) {
+          cleaned[coinId] = (parsed[coinId] || []).map((m: any) => ({ ...m, isNew: false }));
+        }
+        return cleaned;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem("quantum_coin_detail_chats", JSON.stringify(coinDetailChats));
+  }, [coinDetailChats]);
+
+  // Clear isNew flag to stop recursive animations across any chat tab
+  const handleClearCopilotMessageIsNew = (msgId: string) => {
+    // 1. Clear general copilot sessions
+    setCopilotSessions(prev =>
+      prev.map(s => ({
+        ...s,
+        messages: s.messages.map(m => m.id === msgId ? { ...m, isNew: false } : m)
+      }))
+    );
+
+    // 2. Clear detail page chats
+    setCoinDetailChats(prev => {
+      const keys = Object.keys(prev);
+      const updated: Record<string, ChatMessage[]> = {};
+      for (const key of keys) {
+        updated[key] = prev[key].map(m => m.id === msgId ? { ...m, isNew: false } : m);
+      }
+      return updated;
+    });
+
+    // 3. Clear analysis sub-tabs
+    setAnalysisTabs(prev =>
+      prev.map(t => ({
+        ...t,
+        chatMessages: t.chatMessages.map(m => m.id === msgId ? { ...m, isNew: false } : m)
+      }))
+    );
+  };
+
+  // Multi-step progressive search phases exactly like the first video loading animation
+  const [copilotSearchQuery, setCopilotSearchQuery] = useState<string | null>(null);
+  const [loadingPhaseIndex, setLoadingPhaseIndex] = useState<number>(0);
+  const loadingPhases = [
+    "Initializing cognitive neural linkages...",
+    "Scanning structural orderbooks & dark pools...",
+    "Triggering predictive cycle squaring algorithms...",
+    "Formulating strategic AI intelligence dispatch..."
+  ];
+
+  const [copilotAttachment, setCopilotAttachment] = useState<{
+    name: string;
+    type: string;
+    data: string;
+  } | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        pushNotification("Error: File size must be less than 10MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCopilotAttachment({
+          name: file.name,
+          type: file.type,
+          data: reader.result as string
+        });
+        pushNotification(`Attached: ${file.name}`);
+      };
+      reader.onerror = () => {
+        pushNotification("Error reading attachment file.");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        pushNotification("Error: File size must be less than 10MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCopilotAttachment({
+          name: file.name,
+          type: file.type,
+          data: reader.result as string
+        });
+        pushNotification(`Attached via drop: ${file.name}`);
+      };
+      reader.onerror = () => {
+        pushNotification("Error reading dropped attachment file.");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const [copilotInput, setCopilotInput] = useState("");
   const [isCopilotLoading, setIsCopilotLoading] = useState(false);
+  const [copiedCopilotId, setCopiedCopilotId] = useState<string | null>(null);
+
+  const handleCopyCopilotMsg = (msgId: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedCopilotId(msgId);
+    setTimeout(() => setCopiedCopilotId(null), 2000);
+  };
 
   // Periodic Refresh Logic
   useEffect(() => {
@@ -293,16 +488,37 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Universal command bar queried results autocompletes
-  const commandResults = useMemo(() => {
-    if (!commandQuery.trim()) return [];
-    if (!marketStats) return [];
-    const query = commandQuery.toLowerCase();
-    return marketStats.trending.filter(c => 
-      c.symbol.toLowerCase().includes(query) || 
-      c.name.toLowerCase().includes(query)
-    ).slice(0, 5);
-  }, [commandQuery, marketStats]);
+  const [commandResults, setCommandResults] = useState<CryptoAsset[]>([]);
+
+  useEffect(() => {
+    if (!commandQuery.trim()) {
+      setCommandResults([]);
+      return;
+    }
+    const delaySearch = setTimeout(async () => {
+      try {
+        const query = commandQuery.toLowerCase();
+        // If it starts with a '/' we shouldn't search api for matching coins, just commands
+        if (query.startsWith("/")) {
+          setCommandResults([]);
+          return;
+        }
+        
+        let searchString = query;
+        if (query.startsWith("scan ")) {
+          searchString = query.replace("scan ", "");
+        }
+        
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchString)}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Keep to a max of 20 results in the command palette
+          setCommandResults(data.slice(0, 20));
+        }
+      } catch (err) {}
+    }, 150);
+    return () => clearTimeout(delaySearch);
+  }, [commandQuery]);
 
   // Dynamic calculations for Profile Net Asset Value (NAV)
   const livePrices = useMemo(() => {
@@ -430,8 +646,8 @@ export default function App() {
               id: `init_rep_${Date.now()}`,
               role: "assistant",
               content: l === "hinglish"
-                ? `**${asset.name}** deep cycle scanning parameters loaded successfully! Suggestion call: **${report.signal?.action}** (Probability: **${report.signal?.probabilityOfCall || "N/A"}**). Stop-loss limit specified at: **${report.signal?.executionMatrix?.stopLoss}**.`
-                : `Analytical scan completed for **${asset.name} (${asset.symbol})**. Aegis directional signal issued: **${report.signal?.action}** (Win likelihood: **${report.signal?.probabilityOfCall || "N/A"}**). Matrix stop boundaries: **${report.signal?.executionMatrix?.stopLoss}**.`,
+                ? `**${asset.name}** deep cycle scanning parameters loaded successfully! Suggestion call: **${report.signal?.action}** (Probability: **${report.signal?.probabilityOfCall || "N/A"}**). Stop-loss limit specified at: **${report.signal?.plans?.shortTerm?.stopLoss || "N/A"}**.`
+                : `Analytical scan completed for **${asset.name} (${asset.symbol})**. Aegis directional signal issued: **${report.signal?.action}** (Win likelihood: **${report.signal?.probabilityOfCall || "N/A"}**). Matrix stop boundaries: **${report.signal?.plans?.shortTerm?.stopLoss || "N/A"}**.`,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
           ]
@@ -520,27 +736,52 @@ export default function App() {
     }
   };
 
-  // Direct Detail Chat (for legacy direct trade chat)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome_init",
-      role: "assistant",
-      content: "Welcome to **Quantum Intelligence X Specialist Core**. This desk compiles elite technical target pricing, market structure trends, Quantum cyclic anniversary grids, and smart money behaviors.\n\nInput a specific inquiry regarding the selected asset or query general macro trends below.",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  // Direct Detail Chat (for legacy direct trade chat mapped per asset)
+  const chatMessages = useMemo(() => {
+    if (!activeAsset) return [];
+    return coinDetailChats[activeAsset.id] || [
+      {
+        id: "welcome_init_" + activeAsset.id,
+        role: "assistant" as const,
+        content: `Welcome to **Quantum Intelligence ${activeAsset.symbol} Specialist Core**. This desk compiles elite technical target pricing, market structure trends, Quantum cyclic anniversary grids, and smart money behaviors.\n\nInput a specific inquiry regarding ${activeAsset.name} or general macro trends.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isNew: false
+      }
+    ];
+  }, [coinDetailChats, activeAsset]);
+
+  const updateActiveAssetChatMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    if (!activeAsset) return;
+    setCoinDetailChats(prev => {
+      const existing = prev[activeAsset.id] || [
+        {
+          id: "welcome_init_" + activeAsset.id,
+          role: "assistant" as const,
+          content: `Welcome to **Quantum Intelligence ${activeAsset.symbol} Specialist Core**. This desk compiles elite technical target pricing, market structure trends, Quantum cyclic anniversary grids, and smart money behaviors.\n\nInput a specific inquiry regarding ${activeAsset.name} or general macro trends.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isNew: false
+        }
+      ];
+      const updated = typeof updater === 'function' ? updater(existing) : updater;
+      return {
+        ...prev,
+        [activeAsset.id]: updated
+      };
+    });
+  };
+
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
 
   const handleSendChat = async () => {
-    if (!chatInput.trim() || isChatLoading) return;
+    if (!chatInput.trim() || isChatLoading || !activeAsset) return;
     const userMessage: ChatMessage = {
       id: "u_" + Math.random().toString(36).substring(7),
       role: "user",
       content: chatInput,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    setChatMessages(prev => [...prev, userMessage]);
+    updateActiveAssetChatMessages(prev => [...prev, userMessage]);
     const inputStr = chatInput;
     setChatInput("");
     setIsChatLoading(true);
@@ -550,19 +791,20 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [...chatMessages, userMessage].map(m => ({ role: m.role, content: m.content })),
-          targetCoin: activeCoinReport?.asset || null,
+          targetCoin: activeCoinReport?.asset || activeAsset,
           lang: "english"
         })
       });
       if (response.ok) {
         const reply = await response.json();
-        setChatMessages(prev => [
+        updateActiveAssetChatMessages(prev => [
           ...prev,
           {
             id: reply.id,
             role: "assistant",
             content: reply.content,
-            timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isNew: true
           }
         ]);
       }
@@ -573,46 +815,101 @@ export default function App() {
     }
   };
 
+  // Multi-chat companion session state managers
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingSessionName, setEditingSessionName] = useState("");
+
+  const handleCreateCopilotSession = () => {
+    const newId = "session_" + Date.now();
+    const count = copilotSessions.filter(s => s.id.startsWith("session_") || s.id === "general_default").length + 1;
+    const newSession: CopilotSession = {
+      id: newId,
+      name: `Conversation Arc #${count}`,
+      messages: [
+        {
+          id: "copilot_init_" + newId,
+          role: "assistant",
+          content: "I have initialized a new specialized **Aegis AI Chat Session** for your portfolio. What asset or risk vector shall we deep scan?",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isNew: false
+        }
+      ]
+    };
+    setCopilotSessions(prev => [...prev, newSession]);
+    setActiveSessionId(newId);
+  };
+
+  const handleDeleteCopilotSession = (sessionId: string) => {
+    if (copilotSessions.length <= 1) return;
+    const remaining = copilotSessions.filter(s => s.id !== sessionId);
+    setCopilotSessions(remaining);
+    if (activeSessionId === sessionId) {
+      setActiveSessionId(remaining[0].id);
+    }
+  };
+
+  const handleRenameCopilotSession = (sessionId: string, newName: string) => {
+    if (!newName.trim()) return;
+    setCopilotSessions(prev =>
+      prev.map(s => s.id === sessionId ? { ...s, name: newName.trim() } : s)
+    );
+  };
+
   // Persisted general Aegis Copilot chat operation - everywhere on the right
   const handleSendCopilot = async (customPrompt?: string) => {
     const txt = (customPrompt || copilotInput).trim();
-    if (!txt || isCopilotLoading) return;
+    if (!txt && !copilotAttachment) return;
+    if (isCopilotLoading) return;
 
     // Route query safely to active tabs and specialist assistants if detailed or scanned reports views
     const isDetailView = activeTopTab === "TRADE" && currentView === "DETAIL";
     const isReportsView = activeTopTab === "ANALYSIS" && activeAnalysisIndex >= 0;
 
+    const attachmentPayload = copilotAttachment ? {
+      name: copilotAttachment.name,
+      type: copilotAttachment.type,
+      data: copilotAttachment.data
+    } : undefined;
+
     if (isDetailView && activeAsset) {
       // Directs to activeCoinReport's direct trade chat helper!
       setChatInput(txt);
-      setChatMessages(prev => [...prev, {
+      const userMsg: ChatMessage = {
         id: "u_c_" + Date.now(),
         role: "user",
         content: txt,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        attachment: attachmentPayload
+      };
+      updateActiveAssetChatMessages(prev => [...prev, userMsg]);
       setIsCopilotLoading(true);
       setCopilotInput("");
+      setCopilotAttachment(null);
       
       try {
         const response = await fetch("/api/chat-analyst", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: [...chatMessages, { role: "user", content: txt }].map(m => ({ role: m.role, content: m.content })),
+            messages: [...chatMessages, userMsg].map(m => ({ 
+              role: m.role, 
+              content: m.content,
+              attachment: m.attachment
+            })),
             targetCoin: activeAsset,
             lang: "english"
           })
         });
         if (response.ok) {
           const reply = await response.json();
-          setChatMessages(prev => [
+          updateActiveAssetChatMessages(prev => [
             ...prev,
             {
               id: reply.id,
               role: "assistant",
               content: reply.content,
-              timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isNew: true
             }
           ]);
         }
@@ -632,7 +929,8 @@ export default function App() {
         id: "u_c_r_" + Date.now(),
         role: "user",
         content: txt,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        attachment: attachmentPayload
       };
       
       setAnalysisTabs(prev => prev.map((t, i) => i === activeAnalysisIndex ? {
@@ -642,13 +940,18 @@ export default function App() {
       } : t));
       setIsCopilotLoading(true);
       setCopilotInput("");
+      setCopilotAttachment(null);
 
       try {
         const response = await fetch("/api/chat-analyst", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: [...activeTabObj.chatMessages, userMsg].map(m => ({ role: m.role, content: m.content })),
+            messages: [...activeTabObj.chatMessages, userMsg].map(m => ({ 
+              role: m.role, 
+              content: m.content,
+              attachment: m.attachment
+            })),
             targetCoin: activeTabObj.coin,
             lang: activeTabObj.lang
           })
@@ -663,7 +966,8 @@ export default function App() {
                 id: reply.id,
                 role: "assistant",
                 content: reply.content,
-                timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isNew: true
               }
             ]
           } : t));
@@ -681,18 +985,33 @@ export default function App() {
       id: "u_g_" + Date.now(),
       role: 'user',
       content: txt,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      attachment: attachmentPayload
     };
 
     setCopilotGlobalMessages(prev => [...prev, userMsg]);
     setCopilotInput("");
+    setCopilotAttachment(null);
     setIsCopilotLoading(true);
+
+    // Progressive search loading phase indicator mimicking first video
+    setCopilotSearchQuery(txt || "Attached document scanning...");
+    setLoadingPhaseIndex(0);
+    const phaseInterval = setInterval(() => {
+      setLoadingPhaseIndex(prev => (prev < 3 ? prev + 1 : prev));
+    }, 900);
 
     try {
       const response = await fetch('/api/ai-assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...copilotGlobalMessages, userMsg].map(m => ({ role: m.role, content: m.content })) })
+        body: JSON.stringify({ 
+          messages: [...copilotGlobalMessages, userMsg].map(m => ({ 
+            role: m.role, 
+            content: m.content,
+            attachment: m.attachment
+          })) 
+        })
       });
       if (response.ok) {
         const data = await response.json();
@@ -700,12 +1019,15 @@ export default function App() {
           id: data.id,
           role: 'assistant',
           content: data.content,
-          timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isNew: true
         }]);
       }
     } catch (e) {
       console.error(e);
     } finally {
+      clearInterval(phaseInterval);
+      setCopilotSearchQuery(null);
       setIsCopilotLoading(false);
     }
   };
@@ -729,7 +1051,7 @@ export default function App() {
   };
 
   // Execute commands received from the CMD command bar modal
-  const handleExecuteCommand = (cmdText: string) => {
+  const handleExecuteCommand = async (cmdText: string) => {
     setShowCommandBar(false);
     setCommandQuery("");
     const text = cmdText.trim().toLowerCase();
@@ -740,8 +1062,6 @@ export default function App() {
       pushNotification("Navigated to: Mission Control Dashboard.");
     } else if (text === "/portfolio" || text === "portfolio" || text === "fund") {
       setActiveTopTab("TRADE"); // Switch to portfolio in bottom
-      setActiveTopTab("CHAT" === "CHAT" ? "CHAT" : "TRADE" as any); // Correct mapping
-      // Oh, let's map it safely matching activeTopTab check
       setActiveTopTab("TRADE" as any); // Keep trade
       // Set to special active tab PORTFOLIO which is checked in renderer
       setActiveTopTab("PORTFOLIO" as any);
@@ -754,34 +1074,73 @@ export default function App() {
       pushNotification("Command Triggered: Synchronized global markets pipeline.");
     } else if (text.startsWith("/scan ") || text.startsWith("scan ")) {
       const symbol = text.replace("/scan ", "").replace("scan ", "").trim().toUpperCase();
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(symbol)}`);
+        if (res.ok) {
+          const results = await res.json();
+          const coin = results.find((c: any) => c.symbol.toUpperCase() === symbol || c.id.toLowerCase() === symbol.toLowerCase());
+          if (coin) {
+            handleSelectAsset(coin);
+            return;
+          }
+        }
+      } catch (err) {}
       if (marketStats) {
-        const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol);
+        const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol) ||
+                     marketStats.gainers.find(c => c.symbol.toUpperCase() === symbol) ||
+                     marketStats.losers.find(c => c.symbol.toUpperCase() === symbol);
         if (coin) {
           handleSelectAsset(coin);
-        } else {
-          pushNotification(`Command error: Symbol ${symbol} not resolved.`);
+          return;
         }
       }
+      pushNotification(`Command error: Symbol ${symbol} not resolved.`);
     } else if (text.startsWith("/detail ") || text.startsWith("detail ") || text.startsWith("/open ")) {
       const symbol = text.replace("/detail ", "").replace("detail ", "").replace("/open ", "").trim().toUpperCase();
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(symbol)}`);
+        if (res.ok) {
+          const results = await res.json();
+          const coin = results.find((c: any) => c.symbol.toUpperCase() === symbol || c.id.toLowerCase() === symbol.toLowerCase());
+          if (coin) {
+            handleOpenDirectTrade(coin);
+            return;
+          }
+        }
+      } catch (err) {}
       if (marketStats) {
-        const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol);
+        const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol) ||
+                     marketStats.gainers.find(c => c.symbol.toUpperCase() === symbol) ||
+                     marketStats.losers.find(c => c.symbol.toUpperCase() === symbol);
         if (coin) {
           handleOpenDirectTrade(coin);
-        } else {
-          pushNotification(`Command error: Symbol ${symbol} not resolved.`);
+          return;
         }
       }
+      pushNotification(`Command error: Symbol ${symbol} not resolved.`);
     } else {
       // General search lookup fallback
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(text)}`);
+        if (res.ok) {
+          const results = await res.json();
+          const coin = results.find((c: any) => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text || c.id.toLowerCase() === text);
+          if (coin) {
+            handleSelectAsset(coin);
+            return;
+          }
+        }
+      } catch (err) {}
       if (marketStats) {
-        const coin = marketStats.trending.find(c => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text);
+        const coin = marketStats.trending.find(c => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text) ||
+                     marketStats.gainers.find(c => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text) ||
+                     marketStats.losers.find(c => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text);
         if (coin) {
           handleSelectAsset(coin);
-        } else {
-          pushNotification(`Unknown command structure: "${cmdText}"`);
+          return;
         }
       }
+      pushNotification(`Unknown command structure: "${cmdText}"`);
     }
   };
 
@@ -929,7 +1288,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {!isSidebarCollapsed && link.count !== undefined && link.count > 0 && (
+                  {!isSidebarCollapsed && "count" in link && link.count !== undefined && link.count > 0 && (
                     <span className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold ${
                       isDarkActive ? "bg-[#C9A96A]/20 text-[#C9A96A]" : "bg-[#9C7B3E]/15 text-[#9C7B3E]"
                     }`}>
@@ -1051,23 +1410,18 @@ export default function App() {
               </button>
             )}
 
-            {/* INTERACTIVE UNIVERSAL CMD BAR TRIGGER (Fintech Style) */}
-            <div 
-              onClick={() => setShowCommandBar(true)}
-              className={`flex-1 max-w-lg h-10 px-4 rounded-xl border flex items-center justify-between cursor-pointer group transition-all select-none ${
-                isDarkActive 
-                  ? "border-[rgba(255,255,255,0.06)] bg-black/20 hover:border-[#C9A96A]/45 hover:bg-black/40" 
-                  : "border-[rgba(26,26,31,0.06)] bg-[#F5F2EA]/85 hover:border-[#9C7B3E]/45 hover:bg-[#F0EBE0]"
-              }`}
-            >
-              <div className="flex items-center gap-2.5 opacity-40 group-hover:opacity-65 transition-all text-xs">
-                <Search className="w-3.5 h-3.5" />
-                <span className="font-mono text-[10px] uppercase font-bold tracking-wider">Search symbol or Commands (e.g. /scan BTC)...</span>
-              </div>
-              <div className="flex items-center gap-1 opacity-30 font-mono text-[9px] font-bold">
-                <Keyboard className="w-3.5 h-3.5" />
-                <span>PRESS "/"</span>
-              </div>
+            {/* Search Trigger */}
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowCommandBar(true)}
+                className={`p-2 rounded-xl border transition-all ${
+                  isDarkActive 
+                    ? "border-[rgba(255,255,255,0.06)] bg-black/20 hover:border-[#C9A96A]"
+                    : "border-[rgba(26,26,31,0.06)] bg-[#F5F2EA] hover:border-[#9C7B3E]"
+                }`}
+              >
+                <Search className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -1159,6 +1513,7 @@ export default function App() {
                        isDarkActive={isDarkActive}
                        userProfile={userProfile}
                        onTrade={handleTrade}
+                       onClearIsNew={handleClearCopilotMessageIsNew}
                     />
                   )
                 )
@@ -1178,6 +1533,7 @@ export default function App() {
                   }}
                   allAssets={marketStats?.trending || []}
                   onTriggerScanForAsset={handleSelectAsset}
+                  onClearIsNew={handleClearCopilotMessageIsNew}
                 />
               ) : activeTopTab === "CHAT" ? (
                 <AiAssistantTab isDarkActive={isDarkActive} />
@@ -1203,7 +1559,7 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 280 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className={`w-full md:w-72 lg:w-80 h-screen border-l flex flex-col justify-between shrink-0 z-40 fixed md:relative inset-y-0 right-0 shadow-2xl ${
+            className={`w-full md:w-72 lg:w-80 h-[100dvh] border-l flex flex-col justify-between shrink-0 z-40 fixed md:relative inset-y-0 right-0 shadow-2xl ${
               isDarkActive 
                 ? "border-[rgba(255,255,255,0.06)] bg-[#0C0C10]" 
                 : "border-[rgba(26,26,31,0.06)] bg-[#FDFCF7]"
@@ -1233,12 +1589,12 @@ export default function App() {
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 no-scrollbar">
               
               {/* Context spec tags */}
-              <div className="p-2.5 rounded-lg border text-[8.5px] font-mono uppercase bg-black/10" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}>
+              <div className="p-2.5 rounded-lg border text-[8.5px] font-mono uppercase bg-black/15 space-y-2" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}>
                  <div className="flex justify-between items-center text-[#5EEAD4]">
                    <span>ACTIVE COPILOT SYNC:</span>
                    <span>NOMINAL</span>
                  </div>
-                 <div className="opacity-45 mt-1 leading-normal truncate">
+                 <div className="opacity-45 leading-normal truncate">
                    {activeTopTab === "TRADE" && currentView === "DETAIL" && activeAsset
                      ? `SCREEN: DETAIL CENTER // SPECIALIST: ${activeAsset.symbol}`
                      : activeTopTab === "ANALYSIS" && activeAnalysisIndex >= 0
@@ -1246,6 +1602,82 @@ export default function App() {
                      : "SCREEN: GLOBAL COMPANION // GENERAL ORACLE CORE"
                    }
                  </div>
+
+                 {/* MULTI-CHAT CORE SESSION CONTROLS - Displayed only for General Companion views or when activeTopTab is standard */}
+                 {!(activeTopTab === "TRADE" && currentView === "DETAIL") && !(activeTopTab === "ANALYSIS" && activeAnalysisIndex >= 0) && (
+                   <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
+                     <div className="text-[7.5px] font-bold text-white/40">COMPANION CHAT CHANNELS</div>
+                     
+                     {editingSessionId === activeSessionId ? (
+                       <div className="flex items-center gap-1.5 w-full">
+                         <input 
+                           type="text"
+                           value={editingSessionName}
+                           onChange={(e) => setEditingSessionName(e.target.value)}
+                           className="flex-1 px-2 py-1 text-[9px] rounded border border-[#C9A96A] bg-black text-white outline-none font-mono leading-none"
+                           autoFocus
+                         />
+                         <button 
+                           onClick={() => {
+                             handleRenameCopilotSession(activeSessionId, editingSessionName);
+                             setEditingSessionId(null);
+                           }}
+                           className="px-1.5 py-1 text-[8px] bg-green-950 border border-green-800 text-green-400 rounded hover:bg-green-900 transition-all font-bold"
+                         >
+                           SAVE
+                         </button>
+                         <button 
+                           onClick={() => setEditingSessionId(null)}
+                           className="px-1.5 py-1 text-[8px] bg-red-950 border border-red-800 text-red-500 rounded hover:bg-red-900 transition-all"
+                         >
+                           ESC
+                         </button>
+                       </div>
+                     ) : (
+                       <div className="flex items-center justify-between w-full gap-1">
+                         <select
+                           value={activeSessionId}
+                           onChange={(e) => setActiveSessionId(e.target.value)}
+                           className="flex-1 h-6 px-1 text-[8.5px] rounded border border-white/10 bg-black/45 text-white outline-none font-mono"
+                         >
+                           {copilotSessions.map(s => (
+                             <option key={s.id} value={s.id} className="bg-[#0C0C10] text-[#EDEAE3]">{s.name}</option>
+                           ))}
+                         </select>
+                         
+                         <button
+                           onClick={() => {
+                             setEditingSessionId(activeSessionId);
+                             const current = copilotSessions.find(s => s.id === activeSessionId)?.name || "";
+                             setEditingSessionName(current);
+                           }}
+                           title="Rename Session"
+                           className="p-1 rounded border border-white/5 bg-black/20 text-[#C9A96A] hover:bg-black/40 transition-all opacity-80 hover:opacity-100 cursor-pointer"
+                         >
+                           <Edit className="w-2.5 h-2.5" />
+                         </button>
+
+                         <button
+                           onClick={handleCreateCopilotSession}
+                           title="Create New Session"
+                           className="p-1 rounded border border-white/5 bg-black/20 text-[#C9A96A] hover:bg-black/40 transition-all opacity-80 hover:opacity-100 cursor-pointer"
+                         >
+                           <Plus className="w-2.5 h-2.5" />
+                         </button>
+
+                         {copilotSessions.length > 1 && (
+                           <button
+                             onClick={() => handleDeleteCopilotSession(activeSessionId)}
+                             title="Delete Session"
+                             className="p-1 rounded border border-white/5 bg-black/20 text-red-400 hover:bg-black/40 transition-all opacity-80 hover:opacity-100 cursor-pointer"
+                           >
+                             <Trash2 className="w-2.5 h-2.5" />
+                           </button>
+                         )}
+                       </div>
+                     )}
+                   </div>
+                 )}
               </div>
 
               {/* Message timeline viewport */}
@@ -1261,27 +1693,92 @@ export default function App() {
                   return timeline.slice(-6).map((msg) => {
                     const isUser = msg.role === "user";
                     return (
-                      <div key={msg.id} className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
-                        <div className={`px-3 py-2 rounded-xl text-[10px] leading-relaxed max-w-[90%] shadow-sm ${
+                      <div key={msg.id} className={`flex flex-col relative group ${isUser ? "items-end" : "items-start"}`}>
+                        <div className={`px-3 py-2 rounded-xl text-[10px] leading-relaxed max-w-[95%] shadow-sm ${
                           isUser
                             ? (isDarkActive ? "bg-[#C9A96A] text-black font-semibold rounded-tr-none" : "bg-[#9C7B3E] text-white font-semibold rounded-tr-none")
                             : (isDarkActive 
                                 ? "bg-[#14141A] text-[#EDEAE3] border border-white/5 rounded-tl-none" 
                                 : "bg-[#F3EFE7]/80 text-[#1A1A1F] border border-black/5 rounded-tl-none")
                         }`}>
-                          {msg.content}
+                          <div className="flex flex-col gap-1.5">
+                            {msg.role === 'assistant' ? (
+                              msg.isNew ? (
+                                <TypewriterText text={msg.content} onComplete={() => handleClearCopilotMessageIsNew(msg.id)} />
+                              ) : (
+                                <div className="markdown-body">
+                                  <Markdown>{msg.content}</Markdown>
+                                </div>
+                              )
+                            ) : (
+                              <div>{msg.content}</div>
+                            )}
+                            {msg.attachment && (
+                              <div className={`mt-1.5 p-1.5 flex flex-col gap-2 rounded text-[8px] font-mono border max-w-full overflow-hidden ${
+                                isDarkActive 
+                                  ? "bg-white/5 border-white/10 text-white/90" 
+                                  : "bg-black/5 border-black/10 text-black/90"
+                              }`}>
+                                {msg.attachment.type && msg.attachment.type.startsWith("image/") ? (
+                                  <div className="flex flex-col gap-1 w-full">
+                                    <div className="flex items-center gap-1">
+                                      <Image className="w-3 h-3 text-[#C9A96A]" />
+                                      <span className="truncate font-bold">{msg.attachment.name}</span>
+                                    </div>
+                                    <img 
+                                      src={msg.attachment.data} 
+                                      alt={msg.attachment.name}
+                                      className="max-h-24 rounded border border-white/10 object-cover w-auto h-auto max-w-full"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 truncate w-full">
+                                    <Paperclip className="w-3 h-3 text-[#C9A96A]" />
+                                    <span className="truncate font-bold">{msg.attachment.name}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-[7.5px] font-mono opacity-30 mt-0.5 px-0.5">{msg.timestamp}</span>
+                        <div className={`flex items-center gap-3 mt-0.5 px-0.5 ${isUser ? 'flex-row-reverse' : ''}`}>
+                          <span className="text-[7.5px] font-mono opacity-30">{msg.timestamp}</span>
+                          <button 
+                            onClick={() => handleCopyCopilotMsg(msg.id, msg.content)}
+                            className="text-[9px] font-mono opacity-50 hover:opacity-100 flex items-center gap-1 cursor-pointer transition-all hover:text-[#C9A96A] select-none scale-102 hover:scale-105 active:scale-95"
+                            title={isUser ? "Copy Question" : "Copy Answer"}
+                          >
+                            {copiedCopilotId === msg.id ? (
+                              <>
+                                <Check className="w-2 h-2 text-green-500" />
+                                <span className="text-green-500 text-[8px] font-bold">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-2 h-2" />
+                                <span className="text-[8px]">{isUser ? "Copy" : "Copy"}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     );
                   });
                 })()}
 
                 {isCopilotLoading && (
-                   <div className="flex gap-1.5 items-center opacity-55 font-mono text-[8.5px]">
-                      <RefreshCw className="w-3 h-3 text-[#C9A96A] animate-spin" />
-                      <span>HEURISTIC PROCESSING PIPELINE ENGINE...</span>
-                   </div>
+                  <div className="flex flex-col gap-2 p-3 rounded-lg border border-white/5 bg-black/10 font-mono text-[9px] animate-pulse">
+                    <div className="flex items-center gap-1.5 text-[#C9A96A]">
+                      <RefreshCw className="w-3 h-3 animate-spin text-[#C9A96A]" />
+                      <span>COGNITIVE PIPELINE ACTIVE</span>
+                    </div>
+                    <div className="text-white/60 space-y-1">
+                      <div>➔ {loadingPhases[loadingPhaseIndex]}</div>
+                      {copilotSearchQuery && (
+                        <div className="opacity-45 italic text-[8px] truncate">Targeting: "{copilotSearchQuery}"</div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -1336,15 +1833,61 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Attachment chip indicator above the input */}
+              {copilotAttachment && (
+                <div className={`p-1.5 rounded flex items-center justify-between text-[8px] font-mono border ${
+                  isDarkActive 
+                    ? "bg-[#14141E] border-white/5 text-[#EDEAE3]" 
+                    : "bg-white border-black/5 text-[#1A1A1F]"
+                }`}>
+                  <div className="flex items-center gap-1.5 truncate max-w-[80%]">
+                    {copilotAttachment.type && copilotAttachment.type.startsWith("image/") ? (
+                      <Image className="w-3 h-3 text-[#C9A96A] shrink-0" />
+                    ) : (
+                      <Paperclip className="w-3 h-3 text-[#C9A96A] shrink-0" />
+                    )}
+                    <span className="truncate font-bold">{copilotAttachment.name}</span>
+                  </div>
+                  <button 
+                    onClick={() => setCopilotAttachment(null)}
+                    className="p-0.5 rounded hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              )}
+
               {/* Interactive prompt input */}
-              <div className="relative">
+              <div 
+                className="relative"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+              >
+                {/* Hidden input */}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  className="hidden" 
+                />
+                
+                {/* Paperclip trigger */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute left-2.5 top-2.5 text-current opacity-40 hover:opacity-100 hover:text-[#C9A96A] transition-all cursor-pointer"
+                  title="Upload attachment (Drag & drop supported)"
+                >
+                  <Paperclip className="w-3.5 h-3.5" />
+                </button>
+
                 <input 
                   type="text" 
                   value={copilotInput}
                   onChange={(e) => setCopilotInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSendCopilot()}
-                  placeholder="Direct prompt co-pilot desk..."
-                  className={`w-full h-9 pl-3 pr-9 border rounded-lg text-[10px] transition-all outline-none leading-none ${
+                  placeholder="Direct prompt (or drag / drop files)..."
+                  className={`w-full h-9 pl-8 pr-14 border rounded-lg text-[10px] transition-all outline-none leading-none ${
                     isDarkActive 
                       ? "bg-black text-white border-white/10 focus:border-[#C9A96A]/60" 
                       : "bg-white text-black border-black/10 focus:border-[#9C7B3E]/60"
@@ -1352,7 +1895,7 @@ export default function App() {
                 />
                 <button 
                   onClick={() => handleSendCopilot()}
-                  disabled={!copilotInput.trim() || isCopilotLoading}
+                  disabled={(!copilotInput.trim() && !copilotAttachment) || isCopilotLoading}
                   className={`absolute right-1 top-1 h-7 px-2.5 text-[8px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer ${
                     isDarkActive ? "bg-[#C9A96A] text-black" : "bg-[#9C7B3E] text-white"
                   }`}

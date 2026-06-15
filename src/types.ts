@@ -149,4 +149,10 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  isNew?: boolean;
+  attachment?: {
+    name: string;
+    type: string;
+    data: string;
+  };
 }

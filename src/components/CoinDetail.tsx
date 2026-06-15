@@ -25,9 +25,13 @@ import {
   Brain,
   Sliders,
   DollarSign,
-  Briefcase
+  Briefcase,
+  Copy,
+  Check
 } from "lucide-react";
 import { CryptoAsset, CoinIntelligenceReport, ChatMessage, UserProfile, Trade } from "../types";
+import { TypewriterText } from "./TypewriterText";
+import Markdown from "react-markdown";
 import { PaperTrading } from "./PaperTrading";
 import { SquareOfNineMatrix } from "./SquareOfNine";
 import { CoinChart } from "./CoinChart";
@@ -52,6 +56,7 @@ interface Props {
   isDarkActive: boolean;
   userProfile: UserProfile;
   onTrade: (trade: Omit<Trade, "id" | "timestamp">) => void;
+  onClearIsNew?: (msgId: string) => void;
 }
 
 export const CoinDetail: React.FC<Props> = ({ 
@@ -66,10 +71,19 @@ export const CoinDetail: React.FC<Props> = ({
   isChatLoading,
   isDarkActive,
   userProfile,
-  onTrade
+  onTrade,
+  onClearIsNew
 }) => {
   const asset = activeAsset;
   const isUp = asset.changePercent24Hr >= 0;
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyMsg = (msgId: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(msgId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // Collapse/Expand state management for bento panels
   const [collapsed, setCollapsed] = useState<{ [key: string]: boolean }>({
@@ -583,7 +597,7 @@ export const CoinDetail: React.FC<Props> = ({
                     <div className={`flex-1 overflow-y-auto rounded-xl p-3 flex flex-col gap-3.5 border ${
                       isDarkActive ? "bg-black/25 border-white/5" : "bg-[#F7F5F0]/60 border-black/5"
                     }`}>
-                      {chatMessages.slice(0).map((msgRef) => (
+                       {chatMessages.slice(0).map((msgRef) => (
                          <div key={msgRef.id} className={`flex flex-col max-w-[85%] ${
                            msgRef.role === "user" ? "self-end items-end" : "self-start items-start"
                          }`}>
@@ -594,9 +608,34 @@ export const CoinDetail: React.FC<Props> = ({
                                    ? "bg-[#1A1A22] text-[#EDEAE3] border border-white/5 rounded-tl-none" 
                                    : "bg-white text-[#1A1A1F] border border-black/5 rounded-tl-none")
                            }`}>
-                              {msgRef.content}
+                              {msgRef.role === 'assistant' ? (
+                                 msgRef.isNew ? (
+                                   <TypewriterText text={msgRef.content} onComplete={() => onClearIsNew?.(msgRef.id)} />
+                                 ) : (
+                                   <Markdown>{msgRef.content}</Markdown>
+                                 )
+                               ) : msgRef.content}
                            </div>
-                           <span className="text-[7.5px] font-mono opacity-30 mt-0.5 px-0.5">{msgRef.timestamp}</span>
+                           <div className={`flex items-center gap-3 mt-0.5 px-0.5 ${msgRef.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                             <span className="text-[7.5px] font-mono opacity-30">{msgRef.timestamp}</span>
+                             <button 
+                               onClick={() => handleCopyMsg(msgRef.id, msgRef.content)}
+                               className="text-[9px] font-mono opacity-50 hover:opacity-100 flex items-center gap-1 cursor-pointer transition-all hover:text-[#C9A96A] select-none scale-102 hover:scale-105 active:scale-95"
+                               title={msgRef.role === 'user' ? "Copy Question" : "Copy Answer"}
+                             >
+                               {copiedId === msgRef.id ? (
+                                 <>
+                                   <Check className="w-2.5 h-2.5 text-green-500" />
+                                   <span className="text-green-500 text-[8px] font-bold">Copied!</span>
+                                 </>
+                               ) : (
+                                 <>
+                                   <Copy className="w-2.5 h-2.5" />
+                                   <span className="text-[8px]">{msgRef.role === 'user' ? "Copy" : "Copy"}</span>
+                                 </>
+                               )}
+                             </button>
+                           </div>
                          </div>
                       ))}
                       {isChatLoading && (
