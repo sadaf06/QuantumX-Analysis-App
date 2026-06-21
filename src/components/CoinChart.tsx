@@ -38,7 +38,7 @@ export const CoinChart: React.FC<Props> = ({ asset, isDarkActive }) => {
     return (
       <div className="w-full h-80 flex flex-col items-center justify-center opacity-40 gap-3">
         <div className={`w-6 h-6 border-2 border-t-transparent rounded-full animate-spin ${
-          isDarkActive ? "border-[#C9A96A]" : "border-[#9C7B3E]"
+          isDarkActive ? "border-[#14B8A6]" : "border-teal-700"
         }`} />
         <span className="text-[10px] font-mono tracking-widest uppercase font-semibold">syncing terminal coordinates...</span>
       </div>
@@ -54,7 +54,7 @@ export const CoinChart: React.FC<Props> = ({ asset, isDarkActive }) => {
   }
 
   const isUp = data[0].price <= data[data.length - 1].price;
-  const color = isUp ? "#5EEAD4" : "#E2675A";
+  const color = isUp ? "#14B8A6" : "#EF4444";
 
   return (
     <div className="w-full h-80 lg:h-96">

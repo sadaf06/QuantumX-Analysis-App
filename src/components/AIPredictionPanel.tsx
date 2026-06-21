@@ -9,67 +9,67 @@ interface Props {
 
 export const AIPredictionPanel: React.FC<Props> = ({ data, isDarkActive }) => {
   return (
-    <section className={`p-8 rounded-2xl border ${
-      isDarkActive ? "bg-[#13131A] border-[rgba(255,255,255,0.08)] shadow-lg" : "bg-white border-[rgba(26,26,31,0.08)] shadow-sm"
-    }`}>
-      <div className={`flex items-center justify-between border-b pb-4 mb-6 ${
-        isDarkActive ? "border-white/5" : "border-black/5"
-      }`}>
-        <div className="flex items-center gap-2.5">
-          <Activity className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}`} />
-          <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em]">AI Predictive Model Projections</h2>
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+      
+      {/* 3 Zones probabilities row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        {/* Bullish */}
+        <div className={`p-4 rounded border flex flex-col justify-center items-center ${
+          isDarkActive 
+            ? "bg-[#14B8A6]/5 border-[#14B8A6]/15 text-[#14B8A6]" 
+            : "bg-teal-50 border-teal-100 text-teal-850"
+        }`}>
+           <TrendingUp className="w-4.5 h-4.5 mb-1 text-current opacity-85" />
+           <span className="text-[8px] uppercase font-mono font-bold tracking-widest opacity-60">Bull Probability</span>
+           <span className="text-xl font-bold font-mono tracking-tight text-current mt-1.5 tabular-nums">{data.probabilities?.bullish || 0}%</span>
         </div>
+
+        {/* Bearish */}
+        <div className={`p-4 rounded border flex flex-col justify-center items-center ${
+          isDarkActive 
+            ? "bg-red-500/5 border-red-500/15 text-red-400" 
+            : "bg-red-50 border-red-100 text-red-850"
+        }`}>
+           <TrendingDown className="w-4.5 h-4.5 mb-1 text-current opacity-85" />
+           <span className="text-[8px] uppercase font-mono font-bold tracking-widest opacity-60">Bear Probability</span>
+           <span className="text-xl font-bold font-mono tracking-tight text-current mt-1.5 tabular-nums">{data.probabilities?.bearish || 0}%</span>
+        </div>
+
+        {/* Sideways */}
+        <div className={`p-4 rounded border flex flex-col justify-center items-center ${
+          isDarkActive 
+            ? "bg-[#C5A880]/5 border-[#C5A880]/15 text-[#C5A880]" 
+            : "bg-amber-50 border-amber-100 text-amber-900"
+        }`}>
+           <Minus className="w-4.5 h-4.5 mb-1 text-current opacity-85" />
+           <span className="text-[8px] uppercase font-mono font-bold tracking-widest opacity-60">Flat Probability</span>
+           <span className="text-xl font-bold font-mono tracking-tight text-current mt-1.5 tabular-nums">{data.probabilities?.sideways || 0}%</span>
+        </div>
+
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className={`p-5 rounded-2xl border flex flex-col justify-center items-center ${
-          isDarkActive 
-            ? "bg-[#5EEAD4]/5 border-[#5EEAD4]/15 text-[#5EEAD4]" 
-            : "bg-[#5EEAD4]/10 border-[#5EEAD4]/20 text-[#2D8E7E]"
-        }`}>
-           <TrendingUp className="w-5 h-5 mb-2 text-current" />
-           <span className="text-[10px] uppercase font-mono font-bold tracking-widest opacity-60">Bullish Prob.</span>
-           <span className="text-3xl font-bold font-mono tracking-tight text-current mt-1">{data.probabilities?.bullish || 0}%</span>
-        </div>
-        <div className={`p-5 rounded-2xl border flex flex-col justify-center items-center ${
-          isDarkActive 
-            ? "bg-[#E2675A]/5 border-[#E2675A]/15 text-[#E2675A]" 
-            : "bg-[#E2675A]/10 border-[#E2675A]/20 text-[#B84E42]"
-        }`}>
-           <TrendingDown className="w-5 h-5 mb-2 text-current" />
-           <span className="text-[10px] uppercase font-mono font-bold tracking-widest opacity-60">Bearish Prob.</span>
-           <span className="text-3xl font-bold font-mono tracking-tight text-current mt-1">{data.probabilities?.bearish || 0}%</span>
-        </div>
-        <div className={`p-5 rounded-2xl border flex flex-col justify-center items-center ${
-          isDarkActive 
-            ? "bg-[#C9A96A]/5 border-[#C9A96A]/15 text-[#C9A96A]" 
-            : "bg-[#9C7B3E]/10 border-[#9C7B3E]/20 text-[#9C7B3E]"
-        }`}>
-           <Minus className="w-5 h-5 mb-2 text-current" />
-           <span className="text-[10px] uppercase font-mono font-bold tracking-widest opacity-60">Sideways Prob.</span>
-           <span className="text-3xl font-bold font-mono tracking-tight text-current mt-1">{data.probabilities?.sideways || 0}%</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4 font-sans">
+      {/* Vertical timeline details */}
+      <div className="flex flex-col gap-3 font-sans">
         {[
-          { title: 'Short-Term Horizon', outlook: data.outlooks?.shortTerm || { forecast: "N/A", reasoning: "N/A" } },
-          { title: 'Mid-Term Horizon', outlook: data.outlooks?.midTerm || { forecast: "N/A", reasoning: "N/A" } },
-          { title: 'Long-Term Horizon', outlook: data.outlooks?.longTerm || { forecast: "N/A", reasoning: "N/A" } },
+          { title: 'Immediate Core Wave (Short-Term)', outlook: data.outlooks?.shortTerm || { forecast: "N/A", reasoning: "N/A" } },
+          { title: 'Intermediate Symmetry (Mid-Term)', outlook: data.outlooks?.midTerm || { forecast: "N/A", reasoning: "N/A" } },
+          { title: 'Macro Cyclic Projection (Long-Term)', outlook: data.outlooks?.longTerm || { forecast: "N/A", reasoning: "N/A" } },
         ].map((item, idx) => (
-          <div key={idx} className={`p-5 rounded-2xl border ${
+          <div key={idx} className={`p-4 rounded border ${
             isDarkActive 
-              ? "bg-[#1A1A22] border-[rgba(255,255,255,0.08)]" 
-              : "bg-[#F7F5F0]/60 border-[rgba(26,26,31,0.08)]"
+              ? "bg-[#121216]/60 border-white/[0.04]" 
+              : "bg-zinc-50 border-black/[0.05]"
           }`}>
-            <span className={`text-[9px] font-mono font-bold uppercase tracking-widest mb-1.5 block ${
-              isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+            <span className={`text-[8px] font-mono font-bold uppercase tracking-[0.16em] mb-1.5 block ${
+              isDarkActive ? "text-[#C5A880]" : "text-amber-900"
             }`}>{item.title}</span>
-            <span className="text-sm font-bold block mb-1 tracking-tight">{item.outlook.forecast}</span>
-            <span className="text-xs opacity-70 leading-relaxed block font-sans">{item.outlook.reasoning}</span>
+            <span className="text-xs font-bold block mb-1 text-current tracking-tight">{item.outlook.forecast}</span>
+            <span className="text-[11px] opacity-70 leading-relaxed block font-sans">{item.outlook.reasoning}</span>
           </div>
         ))}
       </div>
-    </section>
+
+    </div>
   );
 };

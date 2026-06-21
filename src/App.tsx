@@ -582,6 +582,7 @@ export default function App() {
   };
 
   const handleSelectAsset = (asset: CryptoAsset) => {
+    console.log("DEBUG: handleSelectAsset called");
     setSelectedModalAsset(asset);
     setShowLangSelectionStep(false);
     setSelectedModalLang("english");
@@ -1103,7 +1104,7 @@ export default function App() {
           const results = await res.json();
           const coin = results.find((c: any) => c.symbol.toUpperCase() === symbol || c.id.toLowerCase() === symbol.toLowerCase());
           if (coin) {
-            handleOpenDirectTrade(coin);
+            handleSelectAsset(coin);
             return;
           }
         }
@@ -1113,7 +1114,7 @@ export default function App() {
                      marketStats.gainers.find(c => c.symbol.toUpperCase() === symbol) ||
                      marketStats.losers.find(c => c.symbol.toUpperCase() === symbol);
         if (coin) {
-          handleOpenDirectTrade(coin);
+          handleSelectAsset(coin);
           return;
         }
       }
@@ -1147,14 +1148,14 @@ export default function App() {
   return (
     <div className={`w-full min-h-screen font-sans flex transition-colors duration-300 overflow-hidden ${
       isDarkActive 
-        ? "bg-[#08080A] text-[#EDEAE3]" 
+        ? "bg-[#09090C] text-[#EDEAE3]" 
         : "bg-[#F7F5F0] text-[#1A1A1F]"
     }`}>
       
       {/* ================= LEFT COMMAND SIDEBAR DIRECTORY ================= */}
       <aside className={`h-screen border-r flex flex-col justify-between transition-all shrink-0 z-50 fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:relative ${
         isDarkActive 
-          ? "border-[rgba(255,255,255,0.06)] bg-[#0C0C10]" 
+          ? "border-[rgba(255,255,255,0.04)] bg-[#0C0C0F]" 
           : "border-[rgba(26,26,31,0.06)] bg-[#FDFCF7]"
       } ${isSidebarCollapsed ? "w-16" : "w-64"}`}>
         
@@ -1166,25 +1167,30 @@ export default function App() {
                 onClick={() => { setActiveTopTab("TRADE"); setCurrentView("DASHBOARD"); }}
                 className="flex items-center gap-2.5 cursor-pointer select-none"
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-serif text-sm font-black border ${
+                <div className={`w-8 h-8 rounded flex items-center justify-center border transition-all ${
                   isDarkActive 
-                    ? "bg-[#14141E] border-[rgba(255,255,255,0.1)] text-[#C9A96A]" 
-                    : "bg-white border-black/10 text-[#9C7B3E]"
+                    ? "bg-[#121216] border-white/[0.08] text-[#14B8A6]" 
+                    : "bg-zinc-100 border-black/10 text-teal-855"
                 }`}>
-                  Φ
+                  <svg className="w-4 h-4 text-current" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 12L12 22L22 12L12 2ZM12 6L18 12L12 18L6 12L12 6Z" fill="currentColor"/>
+                    <rect x="11" y="11" width="2" height="2" fill="currentColor" />
+                  </svg>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-serif font-black tracking-tight text-xs leading-none">
-                    QUANTUM<span className={isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}>OS</span>
+                  <span className="font-sans font-bold tracking-tight text-xs leading-none">
+                    QUANTUM<span className={isDarkActive ? "text-[#14B8A6]" : "text-teal-700 font-extrabold"}> X</span>
                   </span>
-                  <span className="text-[7.5px] font-mono tracking-widest uppercase opacity-45 leading-none mt-1">
-                    HEDGE COGNITIVE NODE
+                  <span className="text-[7px] font-mono tracking-[0.22em] uppercase opacity-45 leading-none mt-1.5 font-bold">
+                    ANALYSIS TERMINAL
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center font-serif text-sm font-bold bg-[#C9A96A]/10 text-[#C9A96A]">
-                Φ
+              <div className="w-8 h-8 mx-auto rounded flex items-center justify-center bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/20 transition-all">
+                <svg className="w-4.5 h-4.5 text-current" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 12L12 22L22 12L12 2ZM12 6L18 12L12 18L6 12L12 6Z" fill="currentColor"/>
+                </svg>
               </div>
             )}
 
@@ -1277,7 +1283,7 @@ export default function App() {
                   } ${isSidebarCollapsed ? "px-2.5 justify-center" : "px-3.5"}`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className={isLinkActive ? (isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]") : "text-current"}>
+                    <span className={isLinkActive ? (isDarkActive ? "text-[#14B8A6]" : "text-teal-700") : "text-current"}>
                       {link.icon}
                     </span>
                     {!isSidebarCollapsed && (
@@ -1290,7 +1296,7 @@ export default function App() {
 
                   {!isSidebarCollapsed && "count" in link && link.count !== undefined && link.count > 0 && (
                     <span className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold ${
-                      isDarkActive ? "bg-[#C9A96A]/20 text-[#C9A96A]" : "bg-[#9C7B3E]/15 text-[#9C7B3E]"
+                      isDarkActive ? "bg-[#14B8A6]/20 text-[#14B8A6]" : "bg-teal-50 text-teal-800"
                     }`}>
                       {link.count}
                     </span>
@@ -1303,7 +1309,7 @@ export default function App() {
           {/* Collapsible active diagnostics logs on left sidebar */}
           {!isSidebarCollapsed && (
             <div className="p-4 mx-4 mt-6 border border-dashed rounded-xl font-mono text-[8.5px]" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
-               <span className="font-bold opacity-45 uppercase tracking-widest block mb-2 text-[#5EEAD4]">Active Pipeline</span>
+               <span className="font-bold opacity-45 uppercase tracking-widest block mb-2 text-[#14B8A6]">Active Pipeline</span>
                <div className="flex flex-col gap-1.5 opacity-60">
                  {notifications.slice(0, 2).map((item, id) => (
                     <div key={id} className="truncate">» {item}</div>
@@ -1331,7 +1337,7 @@ export default function App() {
                   onClick={() => setTheme(t.id as any)}
                   className={`py-1 px-3.5 rounded text-[8.5px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
                     theme === t.id
-                      ? (isDarkActive ? "bg-[#C9A96A] text-black" : "bg-[#9C7B3E] text-white")
+                      ? (isDarkActive ? "bg-[#14B8A6] text-black" : "bg-teal-700 text-white")
                       : "opacity-45 hover:opacity-90"
                   }`}
                 >
@@ -1353,22 +1359,22 @@ export default function App() {
           {!isSidebarCollapsed ? (
              <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-black/15 border text-[10px] font-black ${
-                  isDarkActive ? "border-white/5 text-[#C9A96A]" : "border-black/5 text-[#9C7B3E]"
+                  isDarkActive ? "border-white/5 text-[#14B8A6]" : "border-black/5 text-teal-800"
                 }`}>
                   F
                 </div>
                 <div className="flex flex-col leading-none">
                   <span className="text-[8px] font-mono opacity-40 font-bold uppercase tracking-wider">Prime Valuation</span>
-                  <span className="text-xs font-mono font-black mt-0.5 tracking-tight text-[#5EEAD4]">
+                  <span className="text-xs font-mono font-black mt-0.5 tracking-tight text-[#14B8A6]">
                     ${profileNav.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </span>
                   <div className="w-24 bg-black/20 h-0.5 rounded-full mt-1 overflow-hidden">
-                     <div className="bg-[#5EEAD4] h-full" style={{ width: "74%" }}></div>
+                     <div className="bg-[#14B8A6] h-full" style={{ width: "74%" }}></div>
                   </div>
                 </div>
              </div>
           ) : (
-             <div className="w-2 h-2 rounded-full bg-[#5EEAD4] mx-auto animate-pulse"></div>
+             <div className="w-2 h-2 rounded-full bg-[#14B8A6] mx-auto animate-pulse"></div>
           )}
           
         </div>
@@ -1401,7 +1407,7 @@ export default function App() {
                 onClick={() => setCurrentView("DASHBOARD")}
                 className={`p-2.5 rounded-xl border transition-all text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 ${
                   isDarkActive 
-                    ? "border-white/10 text-[#EDEAE3] bg-black/20 hover:border-[#C9A96A]" 
+                    ? "border-white/10 text-[#EDEAE3] bg-black/20 hover:border-[#14B8A6]" 
                     : "border-black/10 text-[#1A1A1F] bg-white hover:bg-black/[0.02]"
                 }`}
               >
@@ -1416,8 +1422,8 @@ export default function App() {
                 onClick={() => setShowCommandBar(true)}
                 className={`p-2 rounded-xl border transition-all ${
                   isDarkActive 
-                    ? "border-[rgba(255,255,255,0.06)] bg-black/20 hover:border-[#C9A96A]"
-                    : "border-[rgba(26,26,31,0.06)] bg-[#F5F2EA] hover:border-[#9C7B3E]"
+                    ? "border-[rgba(255,255,255,0.06)] bg-black/20 hover:border-[#14B8A6]"
+                    : "border-[rgba(26,26,31,0.06)] bg-[#F5F2EA] hover:border-teal-700"
                 }`}
               >
                 <Search className="w-4 h-4" />
@@ -1428,18 +1434,18 @@ export default function App() {
           {/* Asset Ticker rates */}
           <div className="flex items-center gap-5 shrink-0 pl-4 border-l border-current border-opacity-5">
             {marketStats && (
-              <div className="hidden lg:flex items-center gap-5 text-[10px] font-mono leading-none">
+              <div className="hidden lg:flex items-center gap-5 text-[10px] font-mono leading-none font-bold">
                 <div className="flex flex-col">
-                  <span className="opacity-35 font-bold uppercase text-[7.5px]">BTC SPOT</span>
-                  <span className={`font-black mt-0.5 ${isDarkActive ? "text-[#5EEAD4]" : "text-[#9C7B3E]"}`}>${marketStats.btcPrice.toLocaleString()}</span>
+                  <span className="opacity-35 text-[7.5px] uppercase">BTC SPOT</span>
+                  <span className={`mt-0.5 ${isDarkActive ? "text-[#14B8A6]" : "text-teal-800"}`}>${marketStats.btcPrice.toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="opacity-35 font-bold uppercase text-[7.5px]">ETH SPOT</span>
-                  <span className={`font-black mt-0.5 ${isDarkActive ? "text-[#EDEAE3]" : "text-[#9C7B3E]"}`}>${marketStats.ethPrice.toLocaleString()}</span>
+                  <span className="opacity-35 text-[7.5px] uppercase">ETH SPOT</span>
+                  <span className={`mt-0.5 ${isDarkActive ? "text-white" : "text-teal-800"}`}>${marketStats.ethPrice.toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="opacity-35 font-bold uppercase text-[7.5px]">FEAR INDEX</span>
-                  <span className="font-black mt-0.5 text-[#C9A96A]">{marketStats.fearAndGreedIndex} {marketStats.fearAndGreedLabel}</span>
+                  <span className="opacity-35 text-[7.5px] uppercase">FEAR INDEX</span>
+                  <span className="mt-0.5 text-[#C5A880]">{marketStats.fearAndGreedIndex} {marketStats.fearAndGreedLabel}</span>
                 </div>
               </div>
             )}
@@ -1452,16 +1458,16 @@ export default function App() {
                   isDarkActive ? "border-white/5 text-[#EDEAE3]/65" : "border-black/5 text-[#1A1A1F]/65"
                 }`}
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#C9A96A]" : "opacity-60"}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#14B8A6]" : "opacity-60"}`} />
               </button>
 
               <button 
                 onClick={() => { setIsCopilotOpen(!isCopilotOpen); setIsCopilotPulsing(false); }}
                 className={`p-2.5 rounded-xl border text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
                   isCopilotOpen 
-                    ? (isDarkActive ? "bg-[#C9A96A]/10 border-[#C9A96A]/20 text-[#C9A96A]" : "bg-[#9C7B3E]/10 border-[#9C7B3E]/20 text-[#9C7B3E]")
+                    ? (isDarkActive ? "bg-[#14B8A6]/10 border-[#14B8A6]/20 text-[#14B8A6]" : "bg-teal-50 border-teal-200 text-teal-800")
                     : (isDarkActive ? "border-white/5 text-[#EDEAE3]/65 bg-transparent" : "border-black/5 text-[#1A1A1F]/65 bg-transparent")
-                } ${isCopilotPulsing ? "animate-pulse border-[#C9A96A]/50" : ""}`}
+                } ${isCopilotPulsing ? "animate-pulse border-[#14B8A6]/50" : ""}`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Copilot</span>
@@ -1956,16 +1962,19 @@ export default function App() {
                     {commandResults.map(coin => (
                       <button
                         key={coin.id}
-                        onClick={() => handleExecuteCommand(`/open ${coin.symbol}`)}
+                        onClick={() => {
+                          handleSelectAsset(coin);
+                          setShowCommandBar(false);
+                        }}
                         className={`w-full p-2 rounded text-left flex justify-between items-center ${
                           isDarkActive ? "hover:bg-white/5" : "hover:bg-black/5"
                         } cursor-pointer`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-[#C9A96A] font-bold">{coin.symbol}</span>
+                          <span className="text-[#14B8A6] font-bold">{coin.symbol}</span>
                           <span className="opacity-60">{coin.name}</span>
                         </div>
-                        <span className="opacity-45 text-[8.5px] uppercase">/open {coin.symbol}</span>
+                        <span className="opacity-45 text-[8.5px] uppercase">analyze / trade</span>
                       </button>
                     ))}
                   </div>
@@ -2032,7 +2041,7 @@ export default function App() {
                 <div className="flex flex-col gap-6">
                   <div>
                     <span className={`text-[9px] font-mono tracking-[0.25em] uppercase block mb-1.5 ${
-                      isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                      isDarkActive ? "text-[#14B8A6]" : "text-teal-800"
                     }`}>
                       Dossier Workspace Action
                     </span>
@@ -2050,19 +2059,19 @@ export default function App() {
                       onClick={() => handleOpenDirectTrade(selectedModalAsset)}
                       className={`p-5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer group ${
                         isDarkActive 
-                          ? "bg-white/[0.01] border-white/5 hover:border-[#C9A96A]/45 hover:bg-white/[0.03]" 
-                          : "bg-black/[0.01] border-black/5 hover:border-[#9C7B3E]/45 hover:bg-black/[0.02]"
+                          ? "bg-white/[0.01] border-white/5 hover:border-[#14B8A6]/45 hover:bg-white/[0.03]" 
+                          : "bg-black/[0.01] border-black/5 hover:border-teal-700/45 hover:bg-black/[0.02]"
                       }`}
                     >
                       <div className="flex items-center gap-2.5 mb-1.5">
-                        <Sliders className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}`} />
+                        <Sliders className={`w-4 h-4 ${isDarkActive ? "text-[#14B8A6]" : "text-teal-700"}`} />
                         <span className={`font-semibold text-xs uppercase tracking-wider ${
-                          isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                          isDarkActive ? "text-[#14B8A6]" : "text-teal-800"
                         }`}>
-                          Direct spot Trade hub
+                          OPEN CHART
                         </span>
                       </div>
-                      <p className="text-[11px] leading-relaxed opacity-60">
+                      <p className="text-[11px] leading-relaxed opacity-60 font-sans">
                          Access interactive real-time price action charts, order input form vectors, and spot execution ledgers immediately.
                       </p>
                     </button>
@@ -2072,19 +2081,19 @@ export default function App() {
                       onClick={() => setShowLangSelectionStep(true)}
                       className={`p-5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer group ${
                         isDarkActive 
-                          ? "bg-white/[0.01] border-white/5 hover:border-[#C9A96A]/45 hover:bg-white/[0.03]" 
-                          : "bg-black/[0.01] border-black/5 hover:border-[#9C7B3E]/45 hover:bg-black/[0.02]"
+                          ? "bg-white/[0.01] border-white/5 hover:border-[#14B8A6]/45 hover:bg-white/[0.03]" 
+                          : "bg-black/[0.01] border-black/5 hover:border-teal-700/45 hover:bg-black/[0.02]"
                       }`}
                     >
                       <div className="flex items-center gap-2.5 mb-1.5">
-                        <Radio className={`w-4 h-4 text-current animate-pulse`} />
+                        <Radio className={`w-4 h-4 text-current animate-pulse ${isDarkActive ? "text-[#14B8A6]" : "text-teal-700"}`} />
                         <span className={`font-semibold text-xs uppercase tracking-wider ${
-                          isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                          isDarkActive ? "text-[#14B8A6]" : "text-teal-800"
                         }`}>
-                          QUANTUM DEEP VECTOR ANALYSIS
+                          START ANALYSIS
                         </span>
                       </div>
-                      <p className="text-[11px] leading-relaxed opacity-60">
+                      <p className="text-[11px] leading-relaxed opacity-60 font-sans">
                          Run multi-tiered predictive AI models, support/resistance vibrational zones, probability win indices, and risk matrix briefs.
                       </p>
                     </button>
@@ -2094,7 +2103,7 @@ export default function App() {
                 <div className="flex flex-col gap-6 font-sans">
                   <div>
                     <span className={`text-[9px] font-mono tracking-[0.25em] uppercase block mb-1.5 ${
-                      isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
+                      isDarkActive ? "text-[#14B8A6]" : "text-teal-800"
                     }`}>
                       Pipeline Compilation Config
                     </span>
@@ -2112,7 +2121,7 @@ export default function App() {
                       onClick={() => setSelectedModalLang("english")}
                       className={`p-5 rounded-2xl border text-center transition-all cursor-pointer select-none ${
                         selectedModalLang === "english" 
-                          ? (isDarkActive ? "bg-[#C9A96A]/15 border-[#C9A96A] text-[#C9A96A]" : "bg-[#9C7B3E]/10 border-[#9C7B3E] text-[#9C7B3E]")
+                          ? (isDarkActive ? "bg-[#14B8A6]/15 border-[#14B8A6] text-[#14B8A6]" : "bg-teal-50 border-teal-600 text-teal-800")
                           : (isDarkActive ? "bg-white/5 border-transparent opacity-60 hover:opacity-100" : "bg-black/5 border-transparent opacity-60 hover:opacity-100")
                       }`}
                     >
@@ -2125,7 +2134,7 @@ export default function App() {
                       onClick={() => setSelectedModalLang("hinglish")}
                       className={`p-5 rounded-2xl border text-center transition-all cursor-pointer select-none ${
                         selectedModalLang === "hinglish" 
-                          ? (isDarkActive ? "bg-[#C9A96A]/15 border-[#C9A96A] text-[#C9A96A]" : "bg-[#9C7B3E]/10 border-[#9C7B3E] text-[#9C7B3E]")
+                          ? (isDarkActive ? "bg-[#14B8A6]/15 border-[#14B8A6] text-[#14B8A6]" : "bg-teal-50 border-teal-600 text-teal-800")
                           : (isDarkActive ? "bg-white/5 border-transparent opacity-60 hover:opacity-100" : "bg-black/5 border-transparent opacity-60 hover:opacity-100")
                       }`}
                     >
@@ -2147,10 +2156,10 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => handleLaunchAnalysis(selectedModalAsset, selectedModalLang)}
-                      className={`flex-2 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer ${
+                      className={`flex-2 py-3 px-6 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer flex justify-center ${
                         isDarkActive 
-                          ? "bg-[#C9A96A] hover:bg-[#B08A4E] text-black shadow-[#C9A96A]/10" 
-                          : "bg-[#9C7B3E] hover:bg-[#7E602A] text-white shadow-[#9C7B3E]/10"
+                          ? "bg-[#14B8A6] hover:bg-teal-400 text-black shadow-[#14B8A6]/10" 
+                          : "bg-teal-700 hover:bg-teal-800 text-white shadow-teal-700/10"
                       }`}
                     >
                       COMPILE BRIEFING

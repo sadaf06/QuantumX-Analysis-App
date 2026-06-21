@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, Activity, Zap, Shield, TrendingUp, Brain, Users } from 'lucide-react';
+import { Brain, Users } from 'lucide-react';
 import { MarketPsychologyEngine as MarketPsychologyEngineType } from '../types';
 
 interface Props {
@@ -12,27 +12,27 @@ export const MarketPsychologyEngine: React.FC<Props> = ({ data, isDarkActive }) 
     {
       name: "Fear",
       value: data.emotions?.fear ?? 0,
-      color: "#E2675A",
+      color: "#EF4444",
     },
     {
       name: "Greed",
       value: data.emotions?.greed ?? 0,
-      color: "#5EEAD4",
+      color: "#14B8A6",
     },
     {
       name: "Euphoria",
       value: data.emotions?.euphoria ?? 0,
-      color: "#C9A96A",
+      color: "#C5A880",
     },
     {
       name: "Panic",
       value: data.emotions?.panic ?? 0,
-      color: "#E2675A",
+      color: "#EF4444",
     },
     {
       name: "FOMO",
       value: data.emotions?.fomo ?? 0,
-      color: "#B08A4E",
+      color: "#C5A880",
     },
     {
       name: "Capitulation",
@@ -42,45 +42,40 @@ export const MarketPsychologyEngine: React.FC<Props> = ({ data, isDarkActive }) 
   ];
 
   return (
-    <section className={`p-8 rounded-2xl border ${
-      isDarkActive ? "bg-[#13131A] border-[rgba(255,255,255,0.08)] shadow-lg" : "bg-white border-[rgba(26,26,31,0.08)] shadow-sm"
-    }`}>
-      <div className={`flex items-center justify-between border-b pb-4 mb-6 ${
-        isDarkActive ? "border-white/5" : "border-black/5"
-      }`}>
-        <div className="flex items-center gap-2.5">
-          <Brain className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}`} />
-          <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em]">Market Psychology Indexing</h2>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+      
+      {/* Grid of micro indicators */}
+      <div className="grid grid-cols-2 xs:grid-cols-3 gap-3">
         {emotions.map((emo, idx) => (
-           <div key={idx} className={`p-4 rounded-xl border flex flex-col items-center justify-center ${
-             isDarkActive ? "bg-[#1A1A22] border-[rgba(255,255,255,0.08)]" : "bg-[#F7F5F0]/60 border-[rgba(26,26,31,0.08)]"
+           <div key={idx} className={`p-3 rounded border flex flex-col justify-between ${
+             isDarkActive ? "bg-[#121216]/60 border-white/[0.04]" : "bg-zinc-50 border-black/[0.05]"
            }`}>
-              <span className="text-[9px] font-mono uppercase font-bold tracking-widest opacity-60 mb-2.5">{emo.name}</span>
-              <div className="w-full bg-black/10 dark:bg-black/40 h-1.5 rounded-full mb-2.5 overflow-hidden flex">
-                 <div className="h-full rounded-full" style={{ width: `${emo.value}%`, backgroundColor: emo.color }}></div>
+              <span className="text-[8px] font-mono uppercase font-semibold tracking-widest opacity-45 mb-2 block">{emo.name}</span>
+              <div>
+                <div className="w-full bg-current bg-opacity-[0.08] h-[3px] rounded-full overflow-hidden flex mb-2">
+                   <div className="h-full rounded-full" style={{ width: `${emo.value}%`, backgroundColor: emo.color }}></div>
+                </div>
+                <span className="font-mono text-[10px] font-bold block" style={{ color: emo.color }}>{emo.value}/100</span>
               </div>
-              <span className="font-mono text-xs font-bold" style={{ color: emo.color }}>{emo.value}/100</span>
            </div>
         ))}
       </div>
 
-      <div className={`p-5 rounded-2xl border ${
+      {/* Narrative block */}
+      <div className={`p-4 rounded border ${
         isDarkActive 
-          ? "bg-[#C9A96A]/5 border-[#C9A96A]/15 text-[#EDEAE3]" 
-          : "bg-[#9C7B3E]/5 border-[#9C7B3E]/15 text-[#1A1A1F]"
+          ? "bg-[#C5A880]/5 border-[#C5A880]/15" 
+          : "bg-amber-50 border-amber-100"
       }`}>
-        <div className="flex items-center gap-2 mb-2">
-           <Users className={`w-4 h-4 ${isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"}`} />
-           <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${
-             isDarkActive ? "text-[#C9A96A]" : "text-[#9C7B3E]"
-           }`}>Crowd Positioning Estimate</span>
+        <div className="flex items-center gap-1.5 mb-1.5">
+           <Users className={`w-3.5 h-3.5 ${isDarkActive ? "text-[#C5A880]" : "text-amber-900"}`} />
+           <span className={`text-[8.5px] font-mono font-bold uppercase tracking-widest ${
+             isDarkActive ? "text-[#C5A880]" : "text-amber-950"
+           }`}>Crowd Positioning Core</span>
         </div>
-        <p className="text-xs opacity-80 leading-relaxed font-sans">{data.crowdPositioningEstimate}</p>
+        <p className="text-[11px] leading-relaxed opacity-85 font-sans leading-relaxed">{data.crowdPositioningEstimate}</p>
       </div>
-    </section>
+
+    </div>
   );
 };
