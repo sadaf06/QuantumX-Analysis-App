@@ -691,6 +691,36 @@ async function fetchBinanceSpotPrice(symbol: string): Promise<number | null> {
   return null;
 }
 
+async function fetchMultiTimeframeOHLCV(symbol: string): Promise<any> {
+  const intervals = ['1h', '4h', '1d'];
+  const results: any = {};
+  
+  try {
+    const binanceSym = `${symbol.toUpperCase()}USDT`;
+    await Promise.all(intervals.map(async (interval) => {
+      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSym}&interval=${interval}&limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        // Extract basic features to pass to the model
+        const ohlcv = data.map((d: any) => ({
+          time: new Date(d[0]).toISOString(),
+          open: parseFloat(d[1]),
+          high: parseFloat(d[2]),
+          low: parseFloat(d[3]),
+          close: parseFloat(d[4]),
+          volume: parseFloat(d[5]),
+        }));
+        
+        results[interval] = ohlcv;
+      } else {
+        results[interval] = [];
+      }
+    }));
+  } catch(e) {}
+  
+  return results;
+}
+
 async function getAssets(): Promise<CryptoAsset[]> {
   const now = Date.now();
   if (cachedAssets.length === 0 || (now - lastFetchedTime) > CACHE_DURATION_MS) {
@@ -1159,12 +1189,31 @@ app.get("/api/coin/:id", async (req, res) => {
     if (ai) {
       try {
         console.log(`Initiating dynamic Gemini quant-analytical report on ${asset.name} (${asset.symbol}) in ${lang}...`);
+        
+        let ohlcvDataStr = "";
+        const ohlcvData = await fetchMultiTimeframeOHLCV(asset.symbol);
+        if (ohlcvData && Object.keys(ohlcvData).length > 0) {
+          ohlcvDataStr = `\nREAL MULTI-TIMEFRAME OHLCV DATA EXCERPT (Use this to calculate RSI, Moving Averages, Money Flow, Trends, Support/Resistance across 1h, 4h, 1d timeframes, and spot volume anomalies for whale accumulation):\n`;
+          for (const tf of ['1d', '4h', '1h']) {
+            if (ohlcvData[tf] && ohlcvData[tf].length > 0) {
+              const recent = ohlcvData[tf].slice(-14);
+              ohlcvDataStr += `\nTimeframe: ${tf} (Last 14 periods)\n`;
+              ohlcvDataStr += `[Close Prices]: ${recent.map((d: any) => d.close).join(", ")}\n`;
+              ohlcvDataStr += `[Volumes]: ${recent.map((d: any) => d.volume).join(", ")}\n`;
+              ohlcvDataStr += `[Highs]: ${recent.map((d: any) => d.high).join(", ")}\n`;
+              ohlcvDataStr += `[Lows]: ${recent.map((d: any) => d.low).join(", ")}\n`;
+            }
+          }
+        }
   
         let scanSystemPrompt = `You are the "Aegis Quant Engine" — a hyper-advanced, multi-dimensional Market Prediction Core. Your architecture looks deeper than traditional indicators. You operate at the absolute intersection of Quantum Cosmic Mathematics, Market Geometry, Behavioral Mass Psychology, and Global Geopolitical Geofencing.
 
 Your objective: Analyze cryptocurrency tokens to predict direction, timing, and structural traps. Your output must be profoundly analytical, NOT generic.
 
 Analyze ${asset.name} (${asset.symbol}) | Value: $${asset.priceUsd} | Delta: ${asset.changePercent24Hr}%.
+${ohlcvDataStr}
+
+IMPORTANT: Actively use the provided OHLCV data to determine current RSI (e.g. overbought/oversold), calculate Multi-Timeframe Support & Resistance (1H, 4H, 1D), evaluate Trends, and spot volume anomalies (Money Flow / Large Account "Whale" Transfers). Integrate these specific facts directly into the deep reasoning and output. Do not skip data-based analysis!
 
 You MUST return a clean, unformatted JSON conforming exactly to the schema. 
 `;
@@ -1261,8 +1310,27 @@ app.post("/api/chat-analyst", async (req, res) => {
     return res.status(400).json({ error: "Invalid conversational flow structure." });
   }
 
+  let ohlcvDataStr = "";
+  if (targetCoin) {
+    const ohlcvData = await fetchMultiTimeframeOHLCV(targetCoin.symbol);
+    if (ohlcvData && Object.keys(ohlcvData).length > 0) {
+      ohlcvDataStr = `\nREAL MULTI-TIMEFRAME OHLCV DATA EXCERPT (Use this to calculate RSI, Moving Averages, Money Flow, Trends, Support/Resistance across 1h, 4h, 1d timeframes):\n`;
+      for (const tf of ['1d', '4h', '1h']) {
+        if (ohlcvData[tf] && ohlcvData[tf].length > 0) {
+          // just taking the most recent 14 periods to avoid massive token count, but enough for RSI
+          const recent = ohlcvData[tf].slice(-14);
+          ohlcvDataStr += `\nTimeframe: ${tf} (Last 14 periods)\n`;
+          ohlcvDataStr += `[Close Prices]: ${recent.map((d: any) => d.close).join(", ")}\n`;
+          ohlcvDataStr += `[Volumes]: ${recent.map((d: any) => d.volume).join(", ")}\n`;
+          ohlcvDataStr += `[Highs]: ${recent.map((d: any) => d.high).join(", ")}\n`;
+          ohlcvDataStr += `[Lows]: ${recent.map((d: any) => d.low).join(", ")}\n`;
+        }
+      }
+    }
+  }
+
   const coinContext = targetCoin 
-    ? `Target Coin Context: ${targetCoin.name} (${targetCoin.symbol}) currently valued at $${targetCoin.priceUsd} with a 24-hour rate delta of ${targetCoin.changePercent24Hr}%.` 
+    ? `Target Coin Context: ${targetCoin.name} (${targetCoin.symbol}) currently valued at $${targetCoin.priceUsd} with a 24-hour rate delta of ${targetCoin.changePercent24Hr}%. ${ohlcvDataStr}` 
     : "General global macro-cryptographic structure context.";
 
   const parsedLang = (lang as string || "english").toLowerCase().trim();
@@ -1278,10 +1346,15 @@ You are an expert quantitative crypto analyst and professional report writer for
 
 The app already fetches:
 - Market data for the selected coin (price history, intraday behaviour, volume, market cap etc.).
-- Any extra features the app provides (support/resistance, volatility, indicators, news summary, etc.).
+- REAL MULTI-TIMEFRAME OHLCV DATA (1h, 4h, 1d timeframes) to calculate RSI, Support/Resistance, Trend, Money Flow, and Whale accumulation.
+
+IMPORTANT RULES FOR DEEP ANALYSIS:
+- The user expects a DEEP analysis! You MUST actively use the provided OHLCV data to determine the current RSI (e.g. overbought/oversold), calculate/infer Multi-Timeframe Support & Resistance (1h, 4h, 1d), spot volume anomalies (Whale Accumulation / Money Flow), and analyze the Trend direction across multiple timeframes.
+- Do NOT say you cannot calculate these; analyze the provided price arrays and volume arrays directly.
+- Include these deep technical metrics specifically in your final report! Point out what the 1h, 4h, and 1D charts are doing (e.g., "1H RSI is at X, but 1D shows resistance at Y").
 
 Your job:
-1) Take ALL structured data the app passes to you about the selected coin.
+1) Take ALL structured data the app passes to you about the selected coin, especially the OHLCV arrays.
 2) Organise it into a clean internal JSON-like structure called analysis_json.
 3) Use ONLY that analysis_json to generate a clear, honest, deeply reasoned “Algorithmic Report” for that coin.
 
@@ -1545,10 +1618,15 @@ You are an expert quantitative crypto analyst and professional report writer for
 
 The app already fetches:
 - Market data for the selected coin (price history, intraday behaviour, volume, market cap etc.).
-- Any extra features the app provides (support/resistance, volatility, indicators, news summary, etc.).
+- REAL MULTI-TIMEFRAME OHLCV DATA (1h, 4h, 1d timeframes) to calculate RSI, Support/Resistance, Trend, Money Flow, and Whale accumulation.
+
+IMPORTANT RULES FOR DEEP ANALYSIS:
+- The user expects a DEEP analysis! You MUST actively use the provided OHLCV data to determine the current RSI (e.g. overbought/oversold), calculate/infer Multi-Timeframe Support & Resistance (1h, 4h, 1d), spot volume anomalies (Whale Accumulation / Money Flow), and analyze the Trend direction across multiple timeframes.
+- Do NOT say you cannot calculate these; analyze the provided price arrays and volume arrays directly.
+- Include these deep technical metrics specifically in your final report! Point out what the 1h, 4h, and 1D charts are doing (e.g., "1H RSI is at X, but 1D shows resistance at Y").
 
 Your job:
-1) Take ALL structured data the app passes to you about the selected coin.
+1) Take ALL structured data the app passes to you about the selected coin, especially the OHLCV arrays.
 2) Organise it into a clean internal JSON-like structure called analysis_json.
 3) Use ONLY that analysis_json to generate a clear, honest, deeply reasoned “Algorithmic Report” for that coin.
 
