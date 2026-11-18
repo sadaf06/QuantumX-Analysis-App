@@ -43,6 +43,9 @@ import { NewsIntelligenceSystem } from "./NewsIntelligenceSystem";
 import { RiskEnginePanel } from "./RiskEnginePanel";
 import { ExecutionPlansPanel } from "./ExecutionPlansPanel";
 import { FiveYearForecastPanel } from "./FiveYearForecastPanel";
+import { MultiTimeframeMatrix } from "./MultiTimeframeMatrix";
+import { InstitutionalSentiment } from "./InstitutionalSentiment";
+import { TopMasterSignalBanner } from "./TopMasterSignalBanner";
 
 interface Props {
   activeAsset: CryptoAsset;
@@ -224,6 +227,9 @@ export const CoinDetail: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* 1B. TOP MASTER SIGNAL BANNER (BUY/SELL, STRONG/NORMAL/LOW, BUY PRICE, SELL PRICE, TP & SL) */}
+      {report && <TopMasterSignalBanner report={report} isDarkActive={isDarkActive} />}
+
       {/* 2. CORE INTELLIGENCE CENTER DESK */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
@@ -318,7 +324,17 @@ export const CoinDetail: React.FC<Props> = ({
           {/* C. Extended Quantum Projections Framework (Visible if report exists) */}
           {report && (
             <div className="flex flex-col gap-6 mt-2">
-              
+              {report.multiTimeframe && (
+                <MultiTimeframeMatrix
+                  multiTimeframe={report.multiTimeframe}
+                  confluence={report.confluence}
+                  whaleAndMoneyFlow={report.whaleAndMoneyFlow}
+                  currentPrice={asset.priceUsd}
+                  symbol={asset.symbol}
+                  isDarkActive={isDarkActive}
+                />
+              )}
+
               {/* Multidimensional projections banner */}
               <QuantumProjections 
                 currentPrice={asset.priceUsd}
@@ -333,6 +349,12 @@ export const CoinDetail: React.FC<Props> = ({
                   isDarkActive={isDarkActive} 
                 />
               )}
+
+              <InstitutionalSentiment
+                isDarkActive={isDarkActive}
+                asset={asset}
+                whaleData={report.whaleAndMoneyFlow}
+              />
 
               {/* 5-Year Macro Projections */}
               {report.signal?.fiveYearForecast && (

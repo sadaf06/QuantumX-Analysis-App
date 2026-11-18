@@ -32,8 +32,8 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
         const parsed = JSON.parse(saved);
         // Ensure old messages don't re-animate
         return parsed.map((m: any) => ({ ...m, isNew: false }));
-      } catch (e) {
-        console.error(e);
+      } catch {
+        // Ignore corrupted storage
       }
     }
     return [
@@ -93,14 +93,19 @@ export const AiAssistantTab: React.FC<Props> = ({ isDarkActive }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setMessages(prev => [...prev, {
-          id: data.id,
-          role: 'assistant',
-          content: data.content,
-          timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isNew: true
-        }]);
+        const text = await response.text();
+        if (text && !text.trim().startsWith("<")) {
+          const data = JSON.parse(text);
+          setMessages(prev => [...prev, {
+            id: data.id,
+            role: 'assistant',
+            content: data.content,
+            timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isNew: true
+          }]);
+        } else {
+          throw new Error('Invalid response payload');
+        }
       } else {
         throw new Error('Network congestion detected in the Quantum relay.');
       }

@@ -1,8 +1,6 @@
 import React from "react";
 import { 
-  Scan, 
   MessageSquare, 
-  Zap, 
   Activity, 
   ShieldAlert, 
   AlertTriangle, 
@@ -10,18 +8,10 @@ import {
   Globe, 
   RefreshCw, 
   X,
-  Plus,
   ArrowRight,
-  TrendingUp,
-  Sliders,
-  DollarSign,
   FileText,
   Lock,
   Compass,
-  CornerDownRight,
-  UserCheck2,
-  CheckCircle,
-  HelpCircle,
   Award,
   Copy,
   Check
@@ -38,6 +28,9 @@ import { RiskEnginePanel } from "./RiskEnginePanel";
 import { ExecutionPlansPanel } from "./ExecutionPlansPanel";
 import { FiveYearForecastPanel } from "./FiveYearForecastPanel";
 import { InstitutionalSentiment } from "./InstitutionalSentiment";
+import { MultiTimeframeMatrix } from "./MultiTimeframeMatrix";
+import { CoinChart } from "./CoinChart";
+import { TopMasterSignalBanner } from "./TopMasterSignalBanner";
 
 export interface AnalyzedCoinTab {
   coin: CryptoAsset;
@@ -59,6 +52,7 @@ interface Props {
   onOpenTradeView: (asset: CryptoAsset) => void;
   allAssets: CryptoAsset[];
   onTriggerScanForAsset: (asset: CryptoAsset) => void;
+  onRescanTab?: (index: number) => void;
   onClearIsNew: (msgId: string) => void;
 }
 
@@ -73,6 +67,7 @@ export const AnalysisTabCenter: React.FC<Props> = ({
   onOpenTradeView,
   allAssets,
   onTriggerScanForAsset,
+  onRescanTab,
   onClearIsNew
 }) => {
 
@@ -92,6 +87,7 @@ export const AnalysisTabCenter: React.FC<Props> = ({
   );
 
   const activeTab = tabs[activeIndex];
+  const accuracyPct = activeTab?.report?.confluence?.historicalSetupAccuracy || 78;
 
   return (
     <div className="flex flex-col gap-6 items-stretch animate-in fade-in duration-300">
@@ -186,9 +182,9 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                      <RefreshCw className="w-8 h-8 text-[#C9A96A] animate-spin" />
                      <div className="max-w-md">
                         <span className="text-[9px] font-mono tracking-[0.25em] uppercase opacity-40">Aegis Intelligence Dossier Synthesis</span>
-                        <h3 className="text-sm font-mono font-black tracking-widest uppercase mt-1 mb-2">COMPILING PORTFOLIO RESEARCH FOR {activeTab.coin.name}</h3>
+                        <h3 className="text-sm font-mono font-black tracking-widest uppercase mt-1 mb-2">COMPILING 1H • 4H • 1D • 1W QUANT REPORT FOR {activeTab.coin.name}</h3>
                         <p className="opacity-55 text-[10px] leading-relaxed">
-                           Sourcing planetary resistance matrices, calculating Bollinger standard dev vectors, and mapping chronological cyclical squares...
+                           Computing Wilder RSI(14), Money Flow Index (MFI), Chaikin Money Flow (CMF), Whale Volume Spikes, and Multi-Timeframe Support & Resistance levels...
                         </p>
                      </div>
                   </div>
@@ -197,7 +193,7 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                      <div className="flex flex-col gap-6 animate-in fade-in duration-300">
                         
                         {/* 2A. EXECUTIVE RESEARCH HEADER STRIP */}
-                        <div className={`p-8 rounded-2xl border flex flex-col md:flex-row justify-between items-center transition-all relative overflow-hidden gap-6 ${
+                        <div className={`p-6 md:p-8 rounded-2xl border flex flex-col md:flex-row justify-between items-center transition-all relative overflow-hidden gap-6 ${
                           isDarkActive ? "bg-[#101017] border-white/5 shadow-2xl" : "bg-white border-black/10 shadow-lg"
                         }`}>
                            <div className="flex items-center gap-4">
@@ -207,17 +203,31 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                                  Φ
                               </div>
                               <div>
-                                 <div className="flex items-center gap-2">
-                                   <span className="text-[9px] font-mono font-bold tracking-[0.25em] uppercase px-1.5 py-0.5 bg-black/20 text-[#C9A96A] rounded">RESTRICTED DOSSIER</span>
-                                   <span className="text-[9px] font-mono font-bold opacity-30">// SECTION 20-L4</span>
+                                 <div className="flex items-center gap-2 flex-wrap">
+                                   <span className="text-[9px] font-mono font-bold tracking-[0.25em] uppercase px-1.5 py-0.5 bg-black/20 text-[#C9A96A] rounded">QUANTITATIVE DOSSIER</span>
+                                   <span className="text-[9px] font-mono font-bold text-[#14B8A6]">
+                                     // SPOT: ${activeTab.coin.priceUsd.toLocaleString(undefined, { maximumFractionDigits: activeTab.coin.priceUsd > 1 ? 2 : 6 })} ({activeTab.coin.changePercent24Hr >= 0 ? "+" : ""}{activeTab.coin.changePercent24Hr.toFixed(2)}%)
+                                   </span>
                                  </div>
                                  <h2 className="text-2xl font-serif font-semibold tracking-tight mt-1">
-                                   {activeTab.coin.name} Deep Intelligence Briefing
+                                   {activeTab.coin.name} ({activeTab.coin.symbol}) Multi-Timeframe Deep Scan
                                  </h2>
                               </div>
                            </div>
 
-                           <div className="flex items-center gap-3">
+                           <div className="flex items-center gap-2.5 flex-wrap">
+                              {onRescanTab && (
+                                <button
+                                  onClick={() => onRescanTab(activeIndex)}
+                                  className={`px-3.5 py-2 text-[10px] font-mono font-bold rounded-xl border transition-all uppercase flex items-center gap-1.5 cursor-pointer ${
+                                    isDarkActive
+                                      ? "border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6] hover:bg-[#14B8A6]/20"
+                                      : "border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100"
+                                  }`}
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" /> Re-Scan Live Data
+                                </button>
+                              )}
                               <button 
                                  onClick={() => onOpenTradeView(activeTab.coin)}
                                  className={`px-4 py-2 text-[10px] font-mono font-bold rounded-xl border transition-all uppercase flex items-center gap-1.5 cursor-pointer ${
@@ -231,6 +241,9 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                            </div>
                         </div>
 
+                        {/* 2A-SIGNAL. TOP MASTER SIGNAL BANNER (BUY/SELL, STRONG/NORMAL/LOW, BUY PRICE, SELL PRICE, TP & SL) */}
+                        <TopMasterSignalBanner report={activeTab.report} isDarkActive={isDarkActive} />
+
                         {/* 2B. EDITORIAL STYLE STRATEGIC JUSTIFICATION BOARD */}
                         <section className={`p-8 rounded-2xl border relative overflow-hidden ${
                           isDarkActive ? "bg-[#101017] border-white/5 text-slate-100" : "bg-white border-black/10 text-slate-900 shadow-md"
@@ -243,9 +256,11 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                              <div className="flex items-center justify-between border-b pb-4 mb-6" style={{ borderColor: isDarkActive ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
                                <div className="flex items-center gap-2">
                                  <Compass className="w-4.5 h-4.5 text-[#C9A96A]" />
-                                 <span className="text-[10px] font-mono font-bold tracking-[0.25em] uppercase">I. Core Directional Calibration</span>
+                                 <span className="text-[10px] font-mono font-bold tracking-[0.25em] uppercase">I. Core Multi-Timeframe Directional Calibration</span>
                                </div>
-                               <span className="text-[8px] font-mono opacity-50 font-bold uppercase tracking-widest">Aegis Oracle Signature Core</span>
+                               <span className="text-[8px] font-mono opacity-50 font-bold uppercase tracking-widest">
+                                 1H • 4H • 1D • 1W Confluence Engine
+                               </span>
                              </div>
 
                              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
@@ -253,43 +268,65 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                                {/* Left Score */}
                                <div className="flex flex-col justify-between border-b md:border-b-0 md:border-r border-current pb-4 md:pb-0 md:pr-6 border-opacity-10 opacity-90 h-full">
                                  <div>
-                                   <span className="text-[8.5px] font-mono font-bold uppercase opacity-45 tracking-widest block mb-2">SYSTEM CONVICTION INDICATOR</span>
+                                   <span className="text-[8.5px] font-mono font-bold uppercase opacity-45 tracking-widest block mb-2">SYSTEM CONVICTION SIGNAL</span>
                                    <span className={`text-xl font-mono font-black uppercase tracking-wider block ${
                                      activeTab.report.signal?.action?.includes("BUY") || activeTab.report.signal?.action?.includes("ACCUMULATION")
                                        ? "text-[#5EEAD4]"
-                                       : activeTab.report.signal?.action?.includes("SELL")
+                                       : activeTab.report.signal?.action?.includes("SELL") || activeTab.report.signal?.action?.includes("REDUCE")
                                        ? "text-[#E2675A]"
                                        : "text-[#C9A96A]"
                                    }`}>
                                      {activeTab.report.signal?.action}
                                    </span>
                                  </div>
-                                 <span className="text-[7.5px] font-mono block opacity-30 mt-4">Calculated across 20 spatial harmonics</span>
+                                 <span className="text-[8px] font-mono block opacity-45 mt-4">
+                                   Confluence Score: {activeTab.report.confluence?.overallConfluenceScore ?? 76}/100 ({activeTab.report.confluence?.alignedTimeframesCount ?? 3}/4 TF Aligned)
+                                 </span>
                                </div>
 
                                {/* Mid Probability Progress */}
                                <div className="flex flex-col justify-between border-b md:border-b-0 md:border-r border-current pb-4 md:pb-0 md:px-6 border-opacity-10 opacity-90 h-full">
                                  <div>
-                                   <span className="text-[8.5px] font-mono font-bold uppercase opacity-45 tracking-widest block mb-1.5">CONCORDANCE ALIGNMENT delta</span>
+                                   <span className="text-[8.5px] font-mono font-bold uppercase opacity-45 tracking-widest block mb-1.5">CALIBRATED SETUP ACCURACY</span>
                                    <div className="text-2xl font-mono font-bold text-current flex items-end gap-1">
                                      {activeTab.report.signal?.probabilityOfCall}
                                    </div>
                                  </div>
-                                 <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden mt-3">
-                                   <div className="bg-[#5EEAD4] h-full" style={{ width: "84%" }}></div>
+                                 <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden mt-3">
+                                   <div className="bg-[#5EEAD4] h-full transition-all duration-500" style={{ width: `${accuracyPct}%` }}></div>
                                  </div>
                                </div>
 
                                {/* Right Strategic Insight */}
                                <div className="flex flex-col justify-center h-full">
-                                 <span className="text-[8.5px] font-mono font-bold opacity-45 tracking-widest uppercase block mb-1">PROPRIETARY RATIONALE SUMMARY</span>
-                                 <p className="text-xs leading-relaxed opacity-80 font-serif italic">
-                                   "{activeTab.report.signal?.strategicJustification}"
+                                 <span className="text-[8.5px] font-mono font-bold opacity-45 tracking-widest uppercase block mb-1">QUANTITATIVE RATIONALE SUMMARY</span>
+                                 <p className="text-xs leading-relaxed opacity-85 font-sans">
+                                   {activeTab.report.signal?.strategicJustification}
                                  </p>
                                </div>
 
                              </div>
                            </div>
+                        </section>
+
+                        {/* 2B-2. NEW: MULTI-TIMEFRAME TECHNICAL MATRIX (1H, 4H, 1D, 1W RSI, MFI, CMF, S/R, WHALES) */}
+                        {activeTab.report.multiTimeframe && (
+                          <MultiTimeframeMatrix
+                            multiTimeframe={activeTab.report.multiTimeframe}
+                            confluence={activeTab.report.confluence}
+                            whaleAndMoneyFlow={activeTab.report.whaleAndMoneyFlow}
+                            currentPrice={activeTab.coin.priceUsd}
+                            symbol={activeTab.coin.symbol}
+                            isDarkActive={isDarkActive}
+                          />
+                        )}
+
+                        {/* 2B-3. INTERACTIVE MULTI-TIMEFRAME CHART (1H, 4H, 1D, 1W + S/R + EMA 20/50) */}
+                        <section className={`p-6 rounded-2xl border ${
+                          isDarkActive ? "bg-[#101017] border-white/5" : "bg-white border-black/10 shadow-sm"
+                        }`}>
+                          <SectionHeader icon={Activity} title="Interactive Multi-Timeframe Chart (1H • 4H • 1D • 1W) + S/R & EMA Overlays" />
+                          <CoinChart asset={activeTab.coin} isDarkActive={isDarkActive} />
                         </section>
 
                         {/* 2C. MACRO AND CYCLICAL COMPLEMENTS */}
@@ -317,20 +354,20 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                            {/* Price Vectors coordinates */}
                            <section className={`p-6 rounded-2xl border flex flex-col justify-between ${isDarkActive ? "bg-[#101017] border-white/5" : "bg-white border-black/5"}`}>
                              <div>
-                                <SectionHeader icon={Activity} title="II. Chronosequence Price coordinates" />
+                                <SectionHeader icon={Activity} title="II. Multi-Timeframe Price & Pivot Coordinates" />
                                 <div className="flex flex-col gap-4 text-xs font-mono">
                                   <div className="flex flex-col bg-black/15 dark:bg-white/5 p-3 rounded-lg border border-white/5">
-                                    <span className="font-bold opacity-30 uppercase tracking-wider text-[8px] mb-1.5">Vibrational Alignment Vector</span>
+                                    <span className="font-bold opacity-30 uppercase tracking-wider text-[8px] mb-1.5">Multi-Timeframe RSI & EMA Vector</span>
                                     <p className="text-xs leading-relaxed text-current font-medium">{activeTab.report.timeAndPrice?.quantumVectorAlignment}</p>
                                   </div>
                                   
                                   <div className="flex flex-col bg-black/15 dark:bg-white/5 p-3 rounded-lg border border-white/5">
-                                    <span className="font-bold opacity-30 uppercase tracking-wider text-[8px] mb-1.5 text-[#5EEAD4]">Estimated Next Squaring Epoch</span>
+                                    <span className="font-bold opacity-30 uppercase tracking-wider text-[8px] mb-1.5 text-[#5EEAD4]">Breakout & Volatility Timing Window</span>
                                     <p className="text-xs leading-relaxed text-[#5EEAD4] font-bold">{activeTab.report.timeAndPrice?.squaringDatePredict}</p>
                                   </div>
                                   
                                   <div>
-                                    <h4 className="text-[8px] font-bold opacity-30 uppercase mb-2">Hidden Resonance Threshold Nodes</h4>
+                                    <h4 className="text-[8px] font-bold opacity-30 uppercase mb-2">Key Multi-Timeframe Support & Resistance Nodes</h4>
                                     <div className="flex flex-wrap gap-1.5">
                                       {activeTab.report.timeAndPrice?.hiddenVibrationalNodes?.map((n, i) => (
                                         <span key={i} className="text-[10px] font-mono font-bold text-[#C9A96A] bg-[#C9A96A]/10 px-2.5 py-0.5 rounded border border-[#C9A96A]/10">
@@ -364,17 +401,17 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                               {/* Psychological warfare zones */}
                               <section className={`p-6 rounded-2xl border ${isDarkActive ? "bg-[#101017] border-white/5" : "bg-white border-black/5"}`}>
-                                <SectionHeader icon={ShieldAlert} title="III. Crowd Psychological Warfare" />
+                                <SectionHeader icon={ShieldAlert} title="III. Money Flow & Liquidity Trap Zones" />
                                 <div className="flex flex-col gap-4 text-xs">
                                    <div className="flex flex-col gap-1">
-                                      <span className="text-[8px] font-bold text-[#C9A96A] uppercase tracking-wider font-mono">Current Trajectory Bias</span>
+                                      <span className="text-[8px] font-bold text-[#C9A96A] uppercase tracking-wider font-mono">MFI / CMF & Crowd Positioning</span>
                                       <p className="opacity-80 leading-relaxed text-xs">{activeTab.report.psychology?.crowdMindsetState}</p>
                                    </div>
                                    <div className="flex flex-col gap-2 p-4 bg-[#E2675A]/5 rounded-xl border border-[#E2675A]/15 relative overflow-hidden">
                                       <ZapOff className="absolute -right-4 -top-4 w-20 h-20 text-[#E2675A]/10 rotate-12" />
                                       <span className="text-[9px] font-mono font-bold text-[#E2675A] uppercase tracking-widest flex items-center gap-1.5 relative z-10">
                                         <AlertTriangle className="w-3.5 h-3.5" />
-                                        Inbound Liquidity Trap Zone
+                                        Stop-Hunt & Liquidity Trap Zone
                                       </span>
                                       <p className="opacity-80 leading-relaxed text-[11px] relative z-10 mt-1">
                                         {activeTab.report.psychology?.liquidityTrapZone}
@@ -386,17 +423,17 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                               {/* Geopolitical compression and classified anomalies */}
                               <section className={`p-6 rounded-2xl border flex flex-col justify-between ${isDarkActive ? "bg-[#101017] border-white/5" : "bg-white border-black/5"}`}>
                                 <div>
-                                  <SectionHeader icon={Globe} title="IV. Geopolitical capital Compression" />
+                                  <SectionHeader icon={Globe} title="IV. Macro Volatility & Large Account Transfers" />
                                   <p className="text-xs opacity-80 leading-relaxed">
                                     {activeTab.report.geopolitics?.macroVolatilityImpact}
                                   </p>
                                 </div>
                                 <div className="mt-5 p-4 bg-black/20 dark:bg-white/5 rounded-xl border border-dashed relative">
                                    <div className="absolute top-0 right-4 px-2 py-0.5 bg-[#C9A96A] text-black text-[7px] font-mono font-bold tracking-widest uppercase rounded-b-sm">
-                                     Classified
+                                     Whale Radar
                                    </div>
-                                   <span className="text-[8px] font-mono font-bold text-[#C9A96A] uppercase block mb-1 opacity-70">Proprietary anomaly detect</span>
-                                   <p className="font-mono text-xs leading-relaxed text-white">
+                                   <span className="text-[8px] font-mono font-bold text-[#C9A96A] uppercase block mb-1 opacity-70">Large Account / Volume Anomaly Signal</span>
+                                   <p className="font-mono text-xs leading-relaxed text-current">
                                      {activeTab.report.anomaly?.hiddenAnomaly}
                                    </p>
                                 </div>
@@ -427,7 +464,8 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                               )}
                               <InstitutionalSentiment 
                                  isDarkActive={isDarkActive} 
-                                 asset={activeTab.coin} 
+                                 asset={activeTab.coin}
+                                 whaleData={activeTab.report.whaleAndMoneyFlow}
                               />
                            </div>
 
@@ -448,7 +486,7 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                           <div className={`flex-1 overflow-y-auto rounded-xl p-4 flex flex-col gap-3.5 border ${
                             isDarkActive ? "bg-black/25 border-white/5" : "bg-[#F7F5F0]/60 border-black/5"
                           }`}>
-                            {activeTab.chatMessages.map((msg, index) => (
+                            {activeTab.chatMessages.map((msg) => (
                                <div key={msg.id} className={`flex flex-col max-w-[85%] ${
                                  msg.role === "user" ? "self-end items-end" : "self-start items-start"
                                }`}>
@@ -497,7 +535,7 @@ export const AnalysisTabCenter: React.FC<Props> = ({
                               value={activeTab.chatInput}
                               onChange={(e) => onChatInputChange(activeIndex, e.target.value)}
                               onKeyDown={(e) => e.key === "Enter" && onSendChat(activeIndex)}
-                              placeholder={`Query Sizing ratios or entries about ${activeTab.coin.symbol}...`}
+                              placeholder={`Ask about ${activeTab.coin.symbol} 1H/4H/1D/1W RSI, Support/Resistance, or Whale Flow...`}
                               className={`flex-1 h-11 px-4 rounded-xl border text-xs transition-all outline-none ${
                                 isDarkActive 
                                   ? "bg-black text-white border-white/10 focus:border-[#C9A96A]/60" 

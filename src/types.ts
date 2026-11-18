@@ -15,6 +15,72 @@ export interface CryptoAsset {
   maxSupply: number | null;
 }
 
+export interface TimeframeTechnicalNode {
+  timeframe: "1H" | "4H" | "1D" | "1W";
+  rsi14: number;
+  rsiState: "OVERSOLD" | "BULLISH" | "NEUTRAL" | "BEARISH" | "OVERBOUGHT";
+  mfi14: number; // Money Flow Index (0-100)
+  moneyFlowState: "STRONG INFLOW" | "MODERATE INFLOW" | "NEUTRAL" | "MODERATE OUTFLOW" | "HEAVY OUTFLOW";
+  cmf20: number; // Chaikin Money Flow (-1 to +1)
+  ema20: number;
+  ema50: number;
+  ema200: number;
+  macdHistogram: number;
+  trend: "STRONG UPTREND" | "UPTREND" | "RANGING" | "DOWNTREND" | "STRONG DOWNTREND";
+  trendStrength: number; // 0-100
+  atr: number;
+  volatilityPct: number;
+  support1: number;
+  support2: number;
+  resistance1: number;
+  resistance2: number;
+  pivotPoint: number;
+  volumeSpikeRatio: number; // Current/Recent Vol vs 20-MA Vol
+  whaleActivity: "ACCUMULATION SPIKE" | "DISTRIBUTION SPIKE" | "STEADY INSTITUTIONAL" | "RETAIL NORMAL";
+}
+
+export interface WhaleAndMoneyFlowSummary {
+  netMoneyFlowBias: "NET INSTITUTIONAL INFLOW" | "NET INSTITUTIONAL OUTFLOW" | "BALANCED FLOW";
+  aggregateMfi: number;
+  volumeAnomalyRatio: number;
+  largeTransferSignal: string;
+  orderBookImbalance: string;
+  exchangeNetflowEstimate: string;
+  whaleConcentrationScore: number;
+  hourlyFlowSparkline: { period: string; netFlow: number; isWhaleSpike: boolean }[];
+}
+
+export interface QuantConfluenceSummary {
+  overallConfluenceScore: number; // 0 - 100
+  historicalSetupAccuracy: number; // Calibrated 70-86% based on multi-TF alignment
+  alignedTimeframesCount: number; // out of 4 (1H, 4H, 1D, 1W)
+  primaryDriver: string;
+  confluenceBreakdown: {
+    trendAlignmentScore: number;
+    momentumRsiScore: number;
+    moneyFlowWhaleScore: number;
+    supportResistanceScore: number;
+  };
+}
+
+export interface MasterTradeSignal {
+  direction: "BUY" | "SELL";
+  strength: "STRONG" | "NORMAL" | "LOW";
+  fullLabel: string; // e.g., "STRONG BUY", "NORMAL BUY", "LOW BUY", "STRONG SELL", "NORMAL SELL", "LOW SELL"
+  spotPrice: string;
+  buyPrice: string;
+  sellPrice: string;
+  tp1: string;
+  tp2: string;
+  tp3: string;
+  sl: string;
+  expectedGainPct: string;
+  maxRiskPct: string;
+  riskReward: string;
+  accuracyPct: number;
+  scanSummary: string;
+}
+
 export interface AegisTimeAndPrice {
   quantumVectorAlignment: string;
   squaringDatePredict: string;
@@ -39,10 +105,12 @@ export interface ExecutionPlan {
   stopLoss: string;
   targets: string[];
   timeframe: string;
+  riskRewardRatio?: string;
 }
 
 export interface AegisSignal {
-  action: "STRONG BUY" | "LAYERED ACCUMULATION" | "STRONG SELL" | "PATIENT CASH";
+  action: "STRONG BUY" | "NORMAL BUY" | "LOW BUY" | "STRONG SELL" | "NORMAL SELL" | "LOW SELL" | "LAYERED ACCUMULATION" | "NEUTRAL / HOLD" | "TAKE PROFIT / REDUCE";
+  masterSignal?: MasterTradeSignal;
   plans: {
     shortTerm: ExecutionPlan;
     midTerm: ExecutionPlan;
@@ -120,6 +188,15 @@ export interface RiskEngineLevel {
 
 export interface CoinIntelligenceReport {
   asset: CryptoAsset;
+  generatedAt?: string;
+  multiTimeframe?: {
+    "1h": TimeframeTechnicalNode;
+    "4h": TimeframeTechnicalNode;
+    "1d": TimeframeTechnicalNode;
+    "1w": TimeframeTechnicalNode;
+  };
+  whaleAndMoneyFlow?: WhaleAndMoneyFlowSummary;
+  confluence?: QuantConfluenceSummary;
   timeAndPrice: AegisTimeAndPrice;
   psychology: AegisPsychologicalWarfare;
   geopolitics: AegisGeopoliticalCompression;

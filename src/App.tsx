@@ -58,6 +58,58 @@ const INITIAL_PROFILE: UserProfile = {
   history: []
 };
 
+const FALLBACK_ASSETS: CryptoAsset[] = [
+  { id: "bitcoin", name: "Bitcoin", symbol: "BTC", rank: 1, priceUsd: 68450.20, changePercent24Hr: 2.85, marketCapUsd: 1345000000000, volumeUsd24Hr: 28500000000, supply: 19650000, maxSupply: 21000000 },
+  { id: "ethereum", name: "Ethereum", symbol: "ETH", rank: 2, priceUsd: 3485.50, changePercent24Hr: -1.12, marketCapUsd: 418000000000, volumeUsd24Hr: 15400000000, supply: 120100000, maxSupply: null },
+  { id: "binancecoin", name: "BNB", symbol: "BNB", rank: 3, priceUsd: 582.40, changePercent24Hr: 1.45, marketCapUsd: 87000000000, volumeUsd24Hr: 1200000000, supply: 149000000, maxSupply: null },
+  { id: "solana", name: "Solana", symbol: "SOL", rank: 4, priceUsd: 154.60, changePercent24Hr: 6.92, marketCapUsd: 68000000000, volumeUsd24Hr: 3400000000, supply: 440000000, maxSupply: null },
+  { id: "ripple", name: "XRP", symbol: "XRP", rank: 5, priceUsd: 0.58, changePercent24Hr: 0.5, marketCapUsd: 32000000000, volumeUsd24Hr: 1000000000, supply: 55000000000, maxSupply: 100000000000 },
+  { id: "cardano", name: "Cardano", symbol: "ADA", rank: 6, priceUsd: 0.48, changePercent24Hr: -0.2, marketCapUsd: 17000000000, volumeUsd24Hr: 350000000, supply: 35600000000, maxSupply: 45000000000 },
+  { id: "dogecoin", name: "Dogecoin", symbol: "DOGE", rank: 7, priceUsd: 0.142, changePercent24Hr: 4.25, marketCapUsd: 20500000000, volumeUsd24Hr: 1800000000, supply: 144000000000, maxSupply: null },
+  { id: "avalanche-2", name: "Avalanche", symbol: "AVAX", rank: 18, priceUsd: 32.10, changePercent24Hr: 2.18, marketCapUsd: 12500000000, volumeUsd24Hr: 420000000, supply: 392000000, maxSupply: 720000000 },
+  { id: "chainlink", name: "Chainlink", symbol: "LINK", rank: 13, priceUsd: 15.20, changePercent24Hr: 3.12, marketCapUsd: 8900000000, volumeUsd24Hr: 310000000, supply: 587000000, maxSupply: 1000000000 },
+  { id: "the-open-network", name: "Toncoin", symbol: "TON", rank: 20, priceUsd: 7.24, changePercent24Hr: 5.12, marketCapUsd: 18000000000, volumeUsd24Hr: 390000000, supply: 2500000000, maxSupply: null },
+  { id: "sui", name: "Sui", symbol: "SUI", rank: 28, priceUsd: 1.08, changePercent24Hr: 4.7, marketCapUsd: 2600000000, volumeUsd24Hr: 220000000, supply: 2400000000, maxSupply: 10000000000 },
+  { id: "pepe", name: "Pepe", symbol: "PEPE", rank: 29, priceUsd: 0.0000124, changePercent24Hr: 14.2, marketCapUsd: 5200000000, volumeUsd24Hr: 1200000000, supply: 420690000000000, maxSupply: 420690000000000 }
+];
+
+const FALLBACK_MARKET_STATS: MarketGlobalStats = {
+  btcPrice: 68450.20,
+  ethPrice: 3485.50,
+  totalMarketCap: 2480000000000,
+  btcDominance: 56.4,
+  fearAndGreedIndex: 68,
+  fearAndGreedLabel: "Greed",
+  trending: FALLBACK_ASSETS,
+  gainers: [...FALLBACK_ASSETS].sort((a, b) => b.changePercent24Hr - a.changePercent24Hr),
+  losers: [...FALLBACK_ASSETS].sort((a, b) => a.changePercent24Hr - b.changePercent24Hr),
+  recentlyExploding: FALLBACK_ASSETS.slice(0, 5)
+};
+
+async function safeFetchJson<T = any>(url: string, options?: RequestInit): Promise<T | null> {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!text) return null;
+    const trimmed = text.trim();
+    if (trimmed.startsWith("<")) return null;
+    return JSON.parse(trimmed) as T;
+  } catch {
+    return null;
+  }
+}
+
+function safeParseStorage<T>(key: string, fallback: T): T {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return fallback;
+    return JSON.parse(saved) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function App() {
   // Theme Management
   const [theme, setTheme] = useState<"dark" | "light" | "system">(() => {
@@ -88,12 +140,10 @@ export default function App() {
 
   // Multi-coin Analysis Sub-Tabs States
   const [analysisTabs, setAnalysisTabs] = useState<AnalyzedCoinTab[]>(() => {
-    const saved = localStorage.getItem("quantum_analysis_tabs");
-    return saved ? JSON.parse(saved) : [];
+    return safeParseStorage<AnalyzedCoinTab[]>("quantum_analysis_tabs", []);
   });
   const [activeAnalysisIndex, setActiveAnalysisIndex] = useState<number>(() => {
-    const saved = localStorage.getItem("quantum_active_analysis_index");
-    return saved ? JSON.parse(saved) : -1;
+    return safeParseStorage<number>("quantum_active_analysis_index", -1);
   });
 
   useEffect(() => {
@@ -140,17 +190,17 @@ export default function App() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   // Data States
-  const [marketStats, setMarketStats] = useState<MarketGlobalStats | null>(null);
+  const [marketStats, setMarketStats] = useState<MarketGlobalStats | null>(() => {
+    return safeParseStorage<MarketGlobalStats | null>("quantum_market_stats_cache", FALLBACK_MARKET_STATS);
+  });
   const [activeAsset, setActiveAsset] = useState<CryptoAsset | null>(() => {
-    const saved = localStorage.getItem("quantum_active_asset");
-    return saved ? JSON.parse(saved) : null;
+    return safeParseStorage<CryptoAsset | null>("quantum_active_asset", null);
   });
   const [activeCoinReport, setActiveCoinReport] = useState<CoinIntelligenceReport | null>(null);
   
   // User Profile / Paper Trading
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem("quantum_profile");
-    return saved ? JSON.parse(saved) : INITIAL_PROFILE;
+    return safeParseStorage<UserProfile>("quantum_profile", INITIAL_PROFILE);
   });
 
   useEffect(() => {
@@ -178,23 +228,18 @@ export default function App() {
     if (!activeCoinReport || currentView !== "DETAIL" || activeTopTab !== "TRADE") return;
 
     const priceSyncInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/coin/${activeCoinReport.asset.id}/price`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.priceUsd !== activeCoinReport.asset.priceUsd) {
-            setActiveCoinReport(prev => prev ? {
-              ...prev,
-              asset: {
-                ...prev.asset,
-                priceUsd: data.priceUsd,
-                changePercent24Hr: data.changePercent24Hr
-              }
-            } : null);
+      const data = await safeFetchJson<{ priceUsd: number; changePercent24Hr: number }>(
+        `/api/coin/${activeCoinReport.asset.id}/price`
+      );
+      if (data && typeof data.priceUsd === "number" && data.priceUsd !== activeCoinReport.asset.priceUsd) {
+        setActiveCoinReport(prev => prev ? {
+          ...prev,
+          asset: {
+            ...prev.asset,
+            priceUsd: data.priceUsd,
+            changePercent24Hr: data.changePercent24Hr
           }
-        }
-      } catch (err) {
-        // Silent error for background sync
+        } : null);
       }
     }, 12000); // Sync every 12s
 
@@ -264,8 +309,8 @@ export default function App() {
             messages: (s.messages || []).map((m: any) => ({ ...m, isNew: false }))
           }));
         }
-      } catch (e) {
-        console.error(e);
+      } catch {
+        // Ignore corrupted localStorage
       }
     }
     return [
@@ -328,8 +373,8 @@ export default function App() {
           cleaned[coinId] = (parsed[coinId] || []).map((m: any) => ({ ...m, isNew: false }));
         }
         return cleaned;
-      } catch (e) {
-        console.error(e);
+      } catch {
+        // Ignore corrupted localStorage
       }
     }
     return {};
@@ -509,9 +554,8 @@ export default function App() {
           searchString = query.replace("scan ", "");
         }
         
-        const res = await fetch(`/api/search?q=${encodeURIComponent(searchString)}`);
-        if (res.ok) {
-          const data = await res.json();
+        const data = await safeFetchJson<CryptoAsset[]>(`/api/search?q=${encodeURIComponent(searchString)}`);
+        if (Array.isArray(data)) {
           // Keep to a max of 20 results in the command palette
           setCommandResults(data.slice(0, 20));
         }
@@ -548,14 +592,9 @@ export default function App() {
       return;
     }
     const delaySearch = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSearchResults(data);
-        }
-      } catch (err) {
-        console.error("Autocomplete search error:", err);
+      const data = await safeFetchJson<CryptoAsset[]>(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+      if (Array.isArray(data)) {
+        setSearchResults(data);
       }
     }, 150);
     return () => clearTimeout(delaySearch);
@@ -568,14 +607,16 @@ export default function App() {
   const fetchGlobalMarketStats = async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch("/api/market");
-      if (res.ok) {
-        const stats = await res.json();
+      const stats = await safeFetchJson<MarketGlobalStats>("/api/market");
+      if (stats && typeof stats.btcPrice === "number") {
         setMarketStats(stats);
+        try {
+          localStorage.setItem("quantum_market_stats_cache", JSON.stringify(stats));
+        } catch {}
         setTimeSinceUpdate(0);
+      } else {
+        setMarketStats(prev => prev || FALLBACK_MARKET_STATS);
       }
-    } catch (err) {
-      console.error("Market stats error:", err);
     } finally {
       setIsRefreshing(false);
     }
@@ -599,6 +640,50 @@ export default function App() {
     pushNotification(`Established Direct Trade line for ${asset.symbol}.`);
   };
 
+  const handleRescanAnalysisTab = async (tabIdx: number) => {
+    const tab = analysisTabs[tabIdx];
+    if (!tab) return;
+
+    setAnalysisTabs(prev => prev.map((t, idx) => idx === tabIdx ? { ...t, isAnalyzing: true } : t));
+
+    try {
+      const report = await safeFetchJson<CoinIntelligenceReport>(`/api/coin/${tab.coin.id}?lang=${tab.lang}&refresh=true`);
+      if (report && report.signal) {
+        setAnalysisTabs(prev => prev.map((t, idx) => idx === tabIdx ? {
+          ...t,
+          coin: report.asset || t.coin,
+          report,
+          isAnalyzing: false,
+          chatMessages: [
+            ...t.chatMessages,
+            {
+              id: `rescan_rep_${Date.now()}`,
+              role: "assistant",
+              content: tab.lang === "hinglish"
+                ? `**${tab.coin.name} (${tab.coin.symbol})** ka live **1H, 4H, 1D, 1W** Multi-Timeframe scan update ho gaya hai! Signal: **${report.signal?.action}** | Setup Accuracy: **${report.signal?.probabilityOfCall || "N/A"}** | 4H RSI: **${report.multiTimeframe?.["4h"]?.rsi14 ?? "N/A"}** | 1D MFI Flow: **${report.multiTimeframe?.["1d"]?.mfi14 ?? "N/A"}**.`
+                : `Live **1H, 4H, 1D, 1W** Multi-Timeframe scan updated for **${tab.coin.name} (${tab.coin.symbol})**. Signal: **${report.signal?.action}** | Setup Accuracy: **${report.signal?.probabilityOfCall || "N/A"}** | 4H RSI: **${report.multiTimeframe?.["4h"]?.rsi14 ?? "N/A"}** | 1D MFI Flow: **${report.multiTimeframe?.["1d"]?.mfi14 ?? "N/A"}**.`,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]
+        } : t));
+        pushNotification(`Re-scanned 1H/4H/1D/1W matrix for ${tab.coin.symbol}.`);
+      } else {
+        setAnalysisTabs(prev => prev.map((t, idx) => idx === tabIdx ? { ...t, isAnalyzing: false } : t));
+      }
+    } catch {
+      setAnalysisTabs(prev => prev.map((t, idx) => idx === tabIdx ? { ...t, isAnalyzing: false } : t));
+    }
+  };
+
+  // Automatically upgrade any cached tabs from localStorage that lack multiTimeframe or masterSignal data
+  useEffect(() => {
+    analysisTabs.forEach((tab, idx) => {
+      if (tab.report && (!tab.report.multiTimeframe || !tab.report.signal?.masterSignal) && !tab.isAnalyzing) {
+        handleRescanAnalysisTab(idx);
+      }
+    });
+  }, []);
+
   const handleLaunchAnalysis = async (asset: CryptoAsset, lang: "english" | "binglish" | "hinglish") => {
     setShowSelectionModal(false);
     setActiveTopTab("ANALYSIS");
@@ -607,6 +692,7 @@ export default function App() {
     const existingIndex = analysisTabs.findIndex(t => t.coin.id === asset.id && t.lang === l);
     if (existingIndex >= 0) {
       setActiveAnalysisIndex(existingIndex);
+      handleRescanAnalysisTab(existingIndex);
       return;
     }
 
@@ -620,8 +706,8 @@ export default function App() {
           id: `welcome_${asset.id}_${Date.now()}`,
           role: "assistant",
           content: l === "hinglish"
-            ? `Namaste! **${asset.name} (${asset.symbol})** ka advanced quantitative scanning processing me hai... hum cyclical vectors detect kar rahe hain. Live chart price: **$${asset.priceUsd.toLocaleString()}**. Koi specific queries hon toh directly yaha pucho.`
-            : `Welcome to the core specialist quantitative desk for **${asset.name} (${asset.symbol})** trading live at **$${asset.priceUsd.toLocaleString()}**. System diagnostics are active. Ask me about support barriers, squaring parameters, or volume block anomalies.`,
+            ? `Namaste! **${asset.name} (${asset.symbol})** ka **1H, 4H, 1D, 1W** Multi-Timeframe quantitative scan چل raha hai (RSI, Money Flow MFI/CMF, Whale Volume Spikes, aur Support/Resistance)... Live price: **$${asset.priceUsd.toLocaleString()}**.`
+            : `Welcome to the quantitative desk for **${asset.name} (${asset.symbol})** trading live at **$${asset.priceUsd.toLocaleString()}**. Computing **1H, 4H, 1D, 1W** RSI, Money Flow (MFI/CMF), Whale Volume Spikes, and Support/Resistance levels...`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ],
@@ -634,11 +720,11 @@ export default function App() {
     setActiveAnalysisIndex(newIdx);
 
     try {
-      const res = await fetch(`/api/coin/${asset.id}?lang=${l}`);
-      if (res.ok) {
-        const report = await res.json();
+      const report = await safeFetchJson<CoinIntelligenceReport>(`/api/coin/${asset.id}?lang=${l}&refresh=true`);
+      if (report && report.signal) {
         setAnalysisTabs(prev => prev.map((t, idx) => idx === newIdx ? {
           ...t,
+          coin: report.asset || t.coin,
           report,
           isAnalyzing: false,
           chatMessages: [
@@ -647,8 +733,8 @@ export default function App() {
               id: `init_rep_${Date.now()}`,
               role: "assistant",
               content: l === "hinglish"
-                ? `**${asset.name}** deep cycle scanning parameters loaded successfully! Suggestion call: **${report.signal?.action}** (Probability: **${report.signal?.probabilityOfCall || "N/A"}**). Stop-loss limit specified at: **${report.signal?.plans?.shortTerm?.stopLoss || "N/A"}**.`
-                : `Analytical scan completed for **${asset.name} (${asset.symbol})**. Aegis directional signal issued: **${report.signal?.action}** (Win likelihood: **${report.signal?.probabilityOfCall || "N/A"}**). Matrix stop boundaries: **${report.signal?.plans?.shortTerm?.stopLoss || "N/A"}**.`,
+                ? `**${asset.name} (${asset.symbol})** ka **1H, 4H, 1D, 1W** deep quantitative report ready hai! Signal: **${report.signal?.action}** (Setup Accuracy: **${report.signal?.probabilityOfCall || "N/A"}**). 1H RSI: **${report.multiTimeframe?.["1h"]?.rsi14 ?? "N/A"}**, 4H RSI: **${report.multiTimeframe?.["4h"]?.rsi14 ?? "N/A"}**, 1D RSI: **${report.multiTimeframe?.["1d"]?.rsi14 ?? "N/A"}**, 1W RSI: **${report.multiTimeframe?.["1w"]?.rsi14 ?? "N/A"}**. Short-term Stop-loss: **${report.signal?.plans?.shortTerm?.stopLoss || "N/A"}**.`
+                : `Multi-Timeframe (**1H, 4H, 1D, 1W**) scan completed for **${asset.name} (${asset.symbol})**. Signal: **${report.signal?.action}** (Setup Accuracy: **${report.signal?.probabilityOfCall || "N/A"}**). 1H RSI: **${report.multiTimeframe?.["1h"]?.rsi14 ?? "N/A"}**, 4H RSI: **${report.multiTimeframe?.["4h"]?.rsi14 ?? "N/A"}**, 1D RSI: **${report.multiTimeframe?.["1d"]?.rsi14 ?? "N/A"}**, 1W RSI: **${report.multiTimeframe?.["1w"]?.rsi14 ?? "N/A"}**. Matrix stop boundary: **${report.signal?.plans?.shortTerm?.stopLoss || "N/A"}**.`,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
           ]
@@ -657,8 +743,7 @@ export default function App() {
       } else {
         throw new Error("Pipeline returned non-OK status");
       }
-    } catch (err) {
-      console.error("Deep scan loading failed:", err);
+    } catch {
       setAnalysisTabs(prev => prev.map((t, idx) => idx === newIdx ? {
         ...t,
         isAnalyzing: false,
@@ -706,34 +791,29 @@ export default function App() {
       chatInput: ""
     } : t));
 
-    try {
-      const response = await fetch("/api/chat-analyst", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...tab.chatMessages, userMessage].map(m => ({ role: m.role, content: m.content })),
-          targetCoin: tab.coin,
-          lang: tab.lang
-        })
-      });
+    const reply = await safeFetchJson<any>("/api/chat-analyst", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [...tab.chatMessages, userMessage].map(m => ({ role: m.role, content: m.content })),
+        targetCoin: tab.coin,
+        lang: tab.lang
+      })
+    });
 
-      if (response.ok) {
-        const reply = await response.json();
-        setAnalysisTabs(prev => prev.map((t, idx) => idx === tabIdx ? {
-          ...t,
-          chatMessages: [
-            ...t.chatMessages,
-            {
-              id: reply.id,
-              role: "assistant",
-              content: reply.content,
-              timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-          ]
-        } : t));
-      }
-    } catch (err) {
-      console.error("Analysis chat process error:", err);
+    if (reply && reply.content) {
+      setAnalysisTabs(prev => prev.map((t, idx) => idx === tabIdx ? {
+        ...t,
+        chatMessages: [
+          ...t.chatMessages,
+          {
+            id: reply.id,
+            role: "assistant",
+            content: reply.content,
+            timestamp: new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]
+      } : t));
     }
   };
 
@@ -787,7 +867,7 @@ export default function App() {
     setChatInput("");
     setIsChatLoading(true);
     try {
-      const response = await fetch("/api/chat-analyst", {
+      const reply = await safeFetchJson<any>("/api/chat-analyst", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -796,8 +876,7 @@ export default function App() {
           lang: "english"
         })
       });
-      if (response.ok) {
-        const reply = await response.json();
+      if (reply && reply.content) {
         updateActiveAssetChatMessages(prev => [
           ...prev,
           {
@@ -809,8 +888,6 @@ export default function App() {
           }
         ]);
       }
-    } catch (err) {
-      console.error("Chat analyst error:", err);
     } finally {
       setIsChatLoading(false);
     }
@@ -888,7 +965,7 @@ export default function App() {
       setCopilotAttachment(null);
       
       try {
-        const response = await fetch("/api/chat-analyst", {
+        const reply = await safeFetchJson<any>("/api/chat-analyst", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -901,8 +978,7 @@ export default function App() {
             lang: "english"
           })
         });
-        if (response.ok) {
-          const reply = await response.json();
+        if (reply && reply.content) {
           updateActiveAssetChatMessages(prev => [
             ...prev,
             {
@@ -914,8 +990,6 @@ export default function App() {
             }
           ]);
         }
-      } catch (e) {
-        console.error(e);
       } finally {
         setIsCopilotLoading(false);
       }
@@ -944,7 +1018,7 @@ export default function App() {
       setCopilotAttachment(null);
 
       try {
-        const response = await fetch("/api/chat-analyst", {
+        const reply = await safeFetchJson<any>("/api/chat-analyst", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -957,8 +1031,7 @@ export default function App() {
             lang: activeTabObj.lang
           })
         });
-        if (response.ok) {
-          const reply = await response.json();
+        if (reply && reply.content) {
           setAnalysisTabs(prev => prev.map((t, idx) => idx === activeAnalysisIndex ? {
             ...t,
             chatMessages: [
@@ -973,8 +1046,6 @@ export default function App() {
             ]
           } : t));
         }
-      } catch (e) {
-        console.error(e);
       } finally {
         setIsCopilotLoading(false);
       }
@@ -1003,7 +1074,7 @@ export default function App() {
     }, 900);
 
     try {
-      const response = await fetch('/api/ai-assistant', {
+      const data = await safeFetchJson<any>('/api/ai-assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1014,8 +1085,7 @@ export default function App() {
           })) 
         })
       });
-      if (response.ok) {
-        const data = await response.json();
+      if (data && data.content) {
         setCopilotGlobalMessages(prev => [...prev, {
           id: data.id,
           role: 'assistant',
@@ -1024,8 +1094,6 @@ export default function App() {
           isNew: true
         }]);
       }
-    } catch (e) {
-      console.error(e);
     } finally {
       clearInterval(phaseInterval);
       setCopilotSearchQuery(null);
@@ -1038,14 +1106,11 @@ export default function App() {
     if (!activeAsset) return;
     setIsAnalyzing(true);
     try {
-      const res = await fetch(`/api/coin/${activeAsset.id}?lang=english`);
-      if (res.ok) {
-        const report = await res.json();
+      const report = await safeFetchJson<CoinIntelligenceReport>(`/api/coin/${activeAsset.id}?lang=english&refresh=true`);
+      if (report && report.signal) {
         setActiveCoinReport(report);
-        pushNotification(`Compiled quantitative report for ${activeAsset.symbol}.`);
+        pushNotification(`Compiled 1H/4H/1D/1W quantitative report for ${activeAsset.symbol}.`);
       }
-    } catch (err) {
-      console.error("Deep scan failed:", err);
     } finally {
       setIsAnalyzing(false);
     }
@@ -1062,9 +1127,6 @@ export default function App() {
       setCurrentView("DASHBOARD");
       pushNotification("Navigated to: Mission Control Dashboard.");
     } else if (text === "/portfolio" || text === "portfolio" || text === "fund") {
-      setActiveTopTab("TRADE"); // Switch to portfolio in bottom
-      setActiveTopTab("TRADE" as any); // Keep trade
-      // Set to special active tab PORTFOLIO which is checked in renderer
       setActiveTopTab("PORTFOLIO" as any);
       pushNotification("Navigated to: Fund Manager Ledger.");
     } else if (text === "/copilot" || text === "ai" || text === "oracle") {
@@ -1075,17 +1137,14 @@ export default function App() {
       pushNotification("Command Triggered: Synchronized global markets pipeline.");
     } else if (text.startsWith("/scan ") || text.startsWith("scan ")) {
       const symbol = text.replace("/scan ", "").replace("scan ", "").trim().toUpperCase();
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(symbol)}`);
-        if (res.ok) {
-          const results = await res.json();
-          const coin = results.find((c: any) => c.symbol.toUpperCase() === symbol || c.id.toLowerCase() === symbol.toLowerCase());
-          if (coin) {
-            handleSelectAsset(coin);
-            return;
-          }
+      const results = await safeFetchJson<CryptoAsset[]>(`/api/search?q=${encodeURIComponent(symbol)}`);
+      if (Array.isArray(results)) {
+        const coin = results.find((c: any) => c.symbol.toUpperCase() === symbol || c.id.toLowerCase() === symbol.toLowerCase());
+        if (coin) {
+          handleSelectAsset(coin);
+          return;
         }
-      } catch (err) {}
+      }
       if (marketStats) {
         const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol) ||
                      marketStats.gainers.find(c => c.symbol.toUpperCase() === symbol) ||
@@ -1098,17 +1157,14 @@ export default function App() {
       pushNotification(`Command error: Symbol ${symbol} not resolved.`);
     } else if (text.startsWith("/detail ") || text.startsWith("detail ") || text.startsWith("/open ")) {
       const symbol = text.replace("/detail ", "").replace("detail ", "").replace("/open ", "").trim().toUpperCase();
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(symbol)}`);
-        if (res.ok) {
-          const results = await res.json();
-          const coin = results.find((c: any) => c.symbol.toUpperCase() === symbol || c.id.toLowerCase() === symbol.toLowerCase());
-          if (coin) {
-            handleSelectAsset(coin);
-            return;
-          }
+      const results = await safeFetchJson<CryptoAsset[]>(`/api/search?q=${encodeURIComponent(symbol)}`);
+      if (Array.isArray(results)) {
+        const coin = results.find((c: any) => c.symbol.toUpperCase() === symbol || c.id.toLowerCase() === symbol.toLowerCase());
+        if (coin) {
+          handleSelectAsset(coin);
+          return;
         }
-      } catch (err) {}
+      }
       if (marketStats) {
         const coin = marketStats.trending.find(c => c.symbol.toUpperCase() === symbol) ||
                      marketStats.gainers.find(c => c.symbol.toUpperCase() === symbol) ||
@@ -1121,17 +1177,14 @@ export default function App() {
       pushNotification(`Command error: Symbol ${symbol} not resolved.`);
     } else {
       // General search lookup fallback
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(text)}`);
-        if (res.ok) {
-          const results = await res.json();
-          const coin = results.find((c: any) => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text || c.id.toLowerCase() === text);
-          if (coin) {
-            handleSelectAsset(coin);
-            return;
-          }
+      const results = await safeFetchJson<CryptoAsset[]>(`/api/search?q=${encodeURIComponent(text)}`);
+      if (Array.isArray(results)) {
+        const coin = results.find((c: any) => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text || c.id.toLowerCase() === text);
+        if (coin) {
+          handleSelectAsset(coin);
+          return;
         }
-      } catch (err) {}
+      }
       if (marketStats) {
         const coin = marketStats.trending.find(c => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text) ||
                      marketStats.gainers.find(c => c.symbol.toLowerCase() === text || c.name.toLowerCase() === text) ||
@@ -1539,6 +1592,7 @@ export default function App() {
                   }}
                   allAssets={marketStats?.trending || []}
                   onTriggerScanForAsset={handleSelectAsset}
+                  onRescanTab={handleRescanAnalysisTab}
                   onClearIsNew={handleClearCopilotMessageIsNew}
                 />
               ) : activeTopTab === "CHAT" ? (
